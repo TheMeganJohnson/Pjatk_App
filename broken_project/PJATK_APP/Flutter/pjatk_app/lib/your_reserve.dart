@@ -38,7 +38,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
   Future<void> _fetchReservationsForSelectedDate() async {
     final response = await http.post(
       Uri.parse(
-          'http://192.168.0.104:8000/api/list_reservations/'), // Update with your local IP address
+          'http://127.0.0.1:8000/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },

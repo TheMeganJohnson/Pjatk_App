@@ -34,7 +34,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
 
     final response = await http.post(
       Uri.parse(
-          'http://192.168.0.104:8000/api/list_reservations/'), // Update with your local IP address
+          'http://127.0.0.1:8000/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -65,7 +65,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
   Future<void> _submitReservation() async {
     final response = await http.post(
       Uri.parse(
-          'http://192.168.0.104:8000/api/create_reservation/'), // Update with your local IP address
+          'http://127.0.0.1:8000/api/create_reservation/'), // Update with your local IP address
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },

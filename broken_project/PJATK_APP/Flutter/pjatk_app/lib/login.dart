@@ -11,10 +11,32 @@ class LoginPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final String _errorMessage = '';
+  final Map<String, String> localCredentials = {
+  'admin': '123',
+};
 
   Future<void> _login(BuildContext context) async {
     String emailOrLogin = emailController.text;
     String password = passwordController.text;
+
+      // Check local credentials first
+  if (localCredentials.containsKey(emailOrLogin) &&
+      localCredentials[emailOrLogin] == password) {
+    // Local login successful
+    globals.globalFullName = 'Local User';
+    globals.globalUserType = 'Admin'; // Set user type for local login
+    globals.globalAssigned = true; // Assume authenticated
+    globals.globalEmail = 'local@example.com';
+    globals.globalGroup = 'Local Group';
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomePage(), // Navigate to the home page
+      ),
+    );
+    return;
+  }
 
     if (!_isValidEmail(emailOrLogin) && !_isValidLogin(emailOrLogin)) {
       _showErrorDialog(context, 'Podaj poprawny email lub login.');
@@ -23,7 +45,7 @@ class LoginPage extends StatelessWidget {
 
     final response = await http.post(
       Uri.parse(
-          'http://192.168.0.104:8000/api/check_login/'), // Update with your local IP address
+          'http://127.0.0.1:8000/api/check_login/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -65,7 +87,7 @@ class LoginPage extends StatelessWidget {
   Future<void> _fetchReservationsForToday() async {
     final response = await http.post(
       Uri.parse(
-          'http://192.168.0.104:8000/api/list_reservations/'), // Update with your local IP address
+          'http://127.0.0.1:8000/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
