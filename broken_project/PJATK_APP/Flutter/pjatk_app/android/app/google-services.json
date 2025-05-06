@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "221279176601",
+    "project_id": "pjatk-database",
+    "storage_bucket": "pjatk-database.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221279176601:android:a3206b00634f286d87b508",
+        "android_client_info": {
+          "package_name": "com.example.pjatk_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeBFsM1xakSIrz9wWTnEThHasBDANABZc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
