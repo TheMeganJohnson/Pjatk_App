@@ -27,6 +27,7 @@ class Timetable(models.Model):
     is_canceled = models.BooleanField(default=False)
     color = models.CharField(max_length=7)
     user = models.CharField(max_length=255)
+    verified = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'timetable'
@@ -42,10 +43,13 @@ class Reservation(models.Model):
     from_datetime = models.DateTimeField()
     to_datetime = models.DateTimeField()
     group = models.CharField(max_length=255)
-    user = models.CharField(max_length=255)  # Changed to CharField
+    user = models.CharField(max_length=255)
+    verified = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('name', 'room', 'code', 'from_datetime', 'to_datetime')
+        db_table = 'timetable'
+        managed = False
 
 
     def __str__(self):

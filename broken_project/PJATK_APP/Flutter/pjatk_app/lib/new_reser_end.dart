@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'main.dart'; // Ensure main.dart is imported
 import 'new_reser_finish.dart'; // Import the finish page
+import 'globals.dart' as globals; // Import your globals file
 
 class NewReservationEndPage extends StatefulWidget {
   final Map<String, dynamic> newReservation;
@@ -17,11 +18,62 @@ class NewReservationEndPage extends StatefulWidget {
 
 class _NewReservationEndPageState extends State<NewReservationEndPage> {
   List<Map<String, dynamic>> reservations = [];
+  late Map<String, String> texts = {
+    'title': 'New Reservation',
+    'general': 'General',
+    'overview': 'Overview',
+    'room': 'Room',
+    'finish': 'Finish',
+  };
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize texts based on the current language
+    _updateTexts();
+
+    // Listen to language changes
+    globals.languageNotifier.addListener(_onLanguageChange);
+
+    // Fetch reservations
     _fetchReservations();
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener when the widget is disposed
+    globals.languageNotifier.removeListener(_onLanguageChange);
+    super.dispose();
+  }
+
+  void _onLanguageChange() {
+    setState(() {
+      // Update texts when the language changes
+      _updateTexts();
+    });
+  }
+
+  void _updateTexts() {
+    // Define translated texts for both languages
+    final Map<String, String> polishTexts = {
+      'title': 'Nowa Rezerwacja',
+      'general': 'Ogólne',
+      'overview': 'Podgląd',
+      'room': 'Sala',
+      'finish': 'Zakończ',
+    };
+
+    final Map<String, String> englishTexts = {
+      'title': 'New Reservation',
+      'general': 'General',
+      'overview': 'Overview',
+      'room': 'Classroom',
+      'finish': 'Finish',
+    };
+
+    // Choose the appropriate texts based on the global language setting
+    texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
   Future<void> _fetchReservations() async {
@@ -34,7 +86,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
 
     final response = await http.post(
       Uri.parse(
-          'http://127.0.0.1:8000/api/list_reservations/'),
+          'http://192.168.0.248:8000/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -65,7 +117,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
   Future<void> _submitReservation() async {
     final response = await http.post(
       Uri.parse(
-          'http://127.0.0.1:8000/api/create_reservation/'), // Update with your local IP address
+          'http://192.168.0.248:8000/api/create_reservation/'), // Update with your local IP address
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -128,7 +180,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
         DateFormat('yyyy-MM-dd HH:mm:ss').format(reservationEndTime);
 
     return BasePage(
-      title: 'Nowa Rezerwacja',
+      title: texts['title'] ?? 'New Reservation',
       leftButtonAction: () => Navigator.pop(context),
       leftButtonIcon: Icons.arrow_back,
       body: Column(
@@ -139,7 +191,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'General',
+                  texts['general'] ?? 'General',
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -147,11 +199,11 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
                 ),
                 SizedBox(width: 16.0),
                 Text(
-                  'Overview',
+                  texts['overview'] ?? 'Overview',
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black),
+                      color: Theme.of(context).textTheme.bodyLarge?.color),
                 ),
               ],
             ),
@@ -161,14 +213,22 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
             child: Container(
               height: 400.0, // Set a fixed height for the container
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16.0), // Rounded edges
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+                    : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                width: 1.0,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 4,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
+                    color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                      : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
                   ),
                 ],
               ),
@@ -232,18 +292,25 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
                           margin: const EdgeInsets.symmetric(vertical: 4.0),
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
-                            color: _parseColor(reservation['color'],
-                                opacity: isNewReservation ? 0.5 : 1.0),
-                            borderRadius: BorderRadius.circular(8.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                spreadRadius: 2,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
+                          color: _parseColor(reservation['color'], opacity: isNewReservation ? 0.5 : 1.0),
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+                                : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                            width: 1.0, // Border thickness
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                                  : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                              spreadRadius: 2,
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // Slightly raised shadow
+                            ),
+                          ],
+                        ),
                           child: ListTile(
                             title: Text(
                               '${reservation['code']}', // Display reservation code
@@ -252,7 +319,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
                                   color: Colors.black), // Text color black
                             ),
                             subtitle: Text(
-                              'Sala: ${reservation['room']}, ${DateFormat('HH:mm').format(reservationStartTime)}',
+                              '${texts['room'] ?? 'Room'}: ${reservation['room']}, ${DateFormat('HH:mm').format(reservationStartTime)}',
                               style: TextStyle(
                                   color: Colors.black), // Text color black
                             ),
@@ -272,7 +339,18 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               onPressed: _submitReservation,
-              child: Text('Zakończ'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFED1C24), // Red background colo
+          
+                elevation: 2.0, // Slight shadow for a raised effect
+              ),
+              child: Text(
+                texts['finish'] ?? 'Finish',
+                style: TextStyle(
+                  color: Colors.white, // White text color
+                  fontWeight: FontWeight.bold, // Bold text for emphasis
+                ),
+              ),
             ),
           ),
         ],

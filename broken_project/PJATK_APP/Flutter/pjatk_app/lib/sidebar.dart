@@ -4,30 +4,68 @@ import 'home_page.dart';
 import 'main.dart';
 import 'user_account.dart';
 import 'your_reserve.dart';
-import 'globals.dart';
+import 'globals.dart' as globals;
 import 'settings.dart';
 
-class SidebarPage extends StatelessWidget {
+class SidebarPage extends StatefulWidget {
   const SidebarPage({super.key});
 
   @override
+  _SidebarPageState createState() => _SidebarPageState();
+}
+
+class _SidebarPageState extends State<SidebarPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen to language changes
+    globals.languageNotifier.addListener(_onLanguageChange);
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener when the widget is disposed
+    globals.languageNotifier.removeListener(_onLanguageChange);
+    super.dispose();
+  }
+
+  void _onLanguageChange() {
+    setState(() {
+      // Rebuild the widget when the language changes
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<String> prefilledTexts = [
+    // Define button texts for both languages
+    final List<String> polishTexts = [
       'Twoje Rezerwacje',
       'Ustawienia',
       'Konto Użytkownika'
     ];
 
+    final List<String> englishTexts = [
+      'Your Reservations',
+      'Settings',
+      'User Account'
+    ];
+
+    // Choose the appropriate list based on the global language setting
+    final List<String> prefilledTexts = globals.globalLanguagePolish == true
+        ? polishTexts
+        : englishTexts;
+
     final List<VoidCallback> buttonActions = [
       () {
-        // Action for the second button
+        // Navigate to MyReservationsPage
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => MyReservationsPage()),
         );
       },
       () {
-        // Action for the fourth button
+        // Navigate to SettingsPage
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => SettingsPage()),
@@ -42,17 +80,8 @@ class SidebarPage extends StatelessWidget {
       },
     ];
 
-    // Remove "Nowe Rezerwacje" if the user is a student
-    if (globalUserType == 'Student') {
-      int index = prefilledTexts.indexOf('Nowe Rezerwacje');
-      if (index != -1) {
-        prefilledTexts.removeAt(index);
-        buttonActions.removeAt(index);
-      }
-    }
-
     return BasePage(
-      title: 'Sidebar',
+      title: globals.globalLanguagePolish == true ? 'Menu' : 'Sidebar',
       addRightPadding: true,
       leftButtonAction: () {
         Navigator.pushReplacement(
@@ -71,24 +100,39 @@ class SidebarPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Color(0xFF434349)),
+                      color: Theme.of(context).cardColor, // Use theme's card color
                       borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+                            : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                        width: 1.0, // Border thickness
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.4),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                              : Colors.black.withOpacity(0.1), // Dark shadow for light mode
                           spreadRadius: 2,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+                          blurRadius: 8,
+                          offset: Offset(0, 4), // Slightly raised shadow
                         ),
                       ],
                     ),
                     child: Row(
                       children: [
-                        Expanded(child: Text(prefilledTexts[index])),
+                        Expanded(
+                          child: Text(
+                            prefilledTexts[index],
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                         IconButton(
                           icon: Icon(Icons.arrow_forward),
                           color: Color(0xFFED1C24),

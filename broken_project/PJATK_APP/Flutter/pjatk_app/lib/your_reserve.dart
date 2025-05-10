@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'globals.dart' as globals;
 import 'new_reser_start.dart';
 import 'main.dart';
@@ -19,12 +20,74 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
   DateTime selectedDate = DateTime.now();
   List<String> dates = [];
   List<Map<String, dynamic>> selectedDateReservations = [];
+  late Map<String, String> texts = {
+    'title': '',
+    'room': '',
+    'verified': '',
+    'unverified': '',
+    'noReservations': '',
+  };
+
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize texts based on the current language
+    _updateTexts();
+
+    // Listen to language changes
+    globals.languageNotifier.addListener(_onLanguageChange);
+
+    // Initialize dates and fetch reservations
     _initializeDates();
     _fetchReservationsForSelectedDate();
+
+    // Start a timer to update the UI every minute
+    _timer = Timer.periodic(Duration(minutes: 1), (timer) {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener when the widget is disposed
+    globals.languageNotifier.removeListener(_onLanguageChange);
+
+    // Cancel the timer
+    _timer?.cancel();
+
+    super.dispose();
+  }
+
+  void _onLanguageChange() {
+    setState(() {
+      // Update texts when the language changes
+      _updateTexts();
+    });
+  }
+
+  void _updateTexts() {
+    // Define translated texts for both languages
+    final Map<String, String> polishTexts = {
+      'title': 'Moje Rezerwacje',
+      'room': 'Sala',
+      'verified': 'Zweryfikowane',
+      'unverified': 'Niezweryfikowane',
+      'noReservations': 'Brak rezerwacji na wybrany dzień',
+    };
+
+    final Map<String, String> englishTexts = {
+      'title': 'My Reservations',
+      'room': 'Classroom',
+      'verified': 'Verified',
+      'unverified': 'Unverified',
+      'noReservations': 'No reservations for the selected day',
+    };
+
+    // Choose the appropriate texts based on the global language setting
+    texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
   void _initializeDates() {
@@ -38,7 +101,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
   Future<void> _fetchReservationsForSelectedDate() async {
     final response = await http.post(
       Uri.parse(
-          'http://127.0.0.1:8000/api/list_reservations/'),
+          'http://192.168.0.248:8000/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -64,14 +127,36 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
     }
   }
 
-  Color _parseColor(String colorString) {
-    return Color(int.parse(colorString, radix: 16) + 0xFF000000);
+  double? _calculateCurrentTimeOffset() {
+    final now = DateTime.now();
+    if (now.hour < 6 || now.hour >= 20) {
+      // Outside timetable hours
+      return null;
+    }
+    final minutesSinceStart = (now.hour - 6) * 60 + now.minute;
+    return minutesSinceStart.toDouble();
   }
+
+  Color _parseColor(String colorString, {bool isDarkMode = false}) {
+  // Parse the color from the database
+  Color baseColor = Color(int.parse(colorString, radix: 16) + 0xFF000000);
+
+  // If dark mode is enabled, darken the color
+  if (isDarkMode) {
+    baseColor = baseColor.withRed((baseColor.red * 0.8).toInt())
+                         .withGreen((baseColor.green * 0.8).toInt())
+                         .withBlue((baseColor.blue * 0.8).toInt());
+  }
+
+  return baseColor;
+}
 
   @override
   Widget build(BuildContext context) {
+    final currentTimeOffset = _calculateCurrentTimeOffset();
+
     return BasePage(
-      title: 'Moje Rezerwacje',
+      title: texts['title']!,
       leftButtonAction: () => Navigator.pop(context),
       leftButtonIcon: Icons.arrow_back,
       body: Padding(
@@ -97,7 +182,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                 ),
                 Spacer(), // Add a spacer to push the text to the right
                 Text(
-                  'Moje Rezerwacje',
+                  texts['title']!,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -116,6 +201,12 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                       );
                     },
                   ),
+                  IconButton(
+      icon: Icon(Icons.refresh),
+      onPressed: () {
+        _fetchReservationsForSelectedDate(); // Refresh data for the selected date
+      },
+    ),
                 Spacer(), // Add a spacer to push the text to the center
               ],
             ),
@@ -127,7 +218,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                       16.0), // Add margin to move away from edges
                   height: 960.0, // Adjusted height to fix bottom overflow issue
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor, // Use theme's card color
                     borderRadius:
                         BorderRadius.circular(16.0), // More rounded corners
                     boxShadow: [
@@ -151,8 +242,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                 height: 60.0,
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    bottom:
-                                        BorderSide(color: Colors.grey[300]!),
+                                    bottom: BorderSide(color: Color(0xFF74788D)), // Use theme's divider color
                                   ),
                                 ),
                                 child: Row(
@@ -161,12 +251,11 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                       width: 50.0,
                                       child: Text(
                                         '${(index + 6).toString().padLeft(2, '0')}:00',
-                                        style: TextStyle(color: Colors.grey),
+                                        style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color), // Use theme's text color
                                       ),
                                     ),
                                     Expanded(
-                                      child: Divider(
-                                        color: Colors.grey[300],
+                                      child: Divider( // Use theme's divider color
                                         thickness: 1.0,
                                       ),
                                     ),
@@ -196,56 +285,86 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                       left: 50.0,
                                       right: 16.0,
                                       height: boxHeight,
-                                      child: Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 4.0),
-                                        padding: const EdgeInsets.all(8.0),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              _parseColor(reservation['color']),
-                                          borderRadius:
-                                              BorderRadius.circular(8.0),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.2),
-                                              spreadRadius: 2,
-                                              blurRadius: 4,
-                                              offset: Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ListTile(
-                                          title: Text(
-                                            '${reservation['code']}', // Display reservation code
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors
-                                                    .black), // Text color black
-                                          ),
-                                          subtitle: Text(
-                                            'Sala: ${reservation['room']}, ${DateFormat('HH:mm').format(startTime)}',
-                                            style: TextStyle(
-                                                color: Colors
-                                                    .black), // Text color black
-                                          ),
+                                      child: Opacity(
+                                        opacity: reservation['verified'] == true ? 1.0 : 0.5,
+                                        child: GestureDetector(
                                           onTap: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => details
-                                                    .ReservationDetailsPage(
-                                                        reservationData:
-                                                            reservation),
+                                                builder: (context) => details.ReservationDetailsPage(
+                                                  reservationData: reservation,
+                                                ),
                                               ),
                                             );
                                           },
+                                          child: Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                vertical: 4.0),
+                                            padding: const EdgeInsets.all(8.0),
+                                            decoration: BoxDecoration(
+                                              color: _parseColor(
+                                                reservation['color'],
+                                                isDarkMode: Theme.of(context).brightness == Brightness.dark, // Check if dark mode is active
+                                              ),
+                                              borderRadius: BorderRadius.circular(8.0),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.2),
+                                                  spreadRadius: 2,
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: reservation['duration_minutes'] >= 60 // Check if the duration is 30 minutes or more
+                                                ? Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Text(
+                                                        '${reservation['code']}', // Display reservation code
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                                                          fontSize: 13 // Use theme's text color
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4.0),
+                                                      Text(
+                                                        '${texts['room']!}: ${reservation['room']}, ${DateFormat('HH:mm').format(startTime)}',
+                                                        style: TextStyle(
+                                                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                                                          fontSize: 10 // Use theme's text color
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : null, // Do not show text if the duration is less than 30 minutes
+                                          ),
                                         ),
                                       ),
                                     );
                                   }).toList(),
                                 )
-                              : Container(), // Removed the "No reservations found" text
+                              : Center(
+                      child: Text(
+                        texts['noReservations']!,
+                        style: TextStyle(fontSize: 16.0, color: Theme.of(context).textTheme.bodyLarge?.color), // Use theme's text color
+                      ),
+                    ),
+                        ),
+                        // Current time red line
+                      if (currentTimeOffset != null)
+                        Positioned(
+                          top: currentTimeOffset,
+                          left: 0.0, // Extend to the left edge of the timetable
+                          right: 0.0, // Extend to the right edge of the timetable
+                          child: Container(
+                            height: 2.0,
+                            margin: const EdgeInsets.only(left: 50.0, right: 16.0), // Boundaries of the timetable
+                            color: Colors.red,
+                          ),
                         ),
                       ],
                     ),

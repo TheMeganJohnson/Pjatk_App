@@ -64,6 +64,7 @@ def list_reservations(request):
                     'is_canceled': reservation.is_canceled,
                     'color': reservation.color,
                     'user': reservation.user,
+                    'verified': reservation.verified,
                 }
                 for reservation in reservations
             ]
@@ -93,7 +94,8 @@ def create_reservation(request):
                 from_datetime=from_datetime,
                 to_datetime=to_datetime,
                 group=data['group'],
-                user=data['user']  # Use data['user'] as a string
+                user=data['user'],
+                verified=False
             )
             reservation.save()
             print(f"Reservation saved: {reservation}")  # Debug print to confirm saving

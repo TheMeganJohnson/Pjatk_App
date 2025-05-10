@@ -22,6 +22,82 @@ class _NewReservationStartPageState extends State<NewReservationStartPage> {
   final TextEditingController _roomController = TextEditingController();
   final TextEditingController _groupController = TextEditingController();
 
+  late Map<String, String> texts = {
+    'title': 'New Reservation',
+    'general': 'General',
+    'overview': 'Overview',
+    'reservationName': 'Reservation Name',
+    'reservationCode': 'Reservation Code',
+    'reservationTime': 'Reservation Time:',
+    'day': 'Day',
+    'start': 'Start',
+    'duration': 'Duration [min]',
+    'room': 'Room',
+    'group': 'Group',
+    'submit': 'Submit',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize texts based on the current language
+    _updateTexts();
+
+    // Listen to language changes
+    globals.languageNotifier.addListener(_onLanguageChange);
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener when the widget is disposed
+    globals.languageNotifier.removeListener(_onLanguageChange);
+    super.dispose();
+  }
+
+  void _onLanguageChange() {
+    setState(() {
+      // Update texts when the language changes
+      _updateTexts();
+    });
+  }
+
+  void _updateTexts() {
+    // Define translated texts for both languages
+    final Map<String, String> polishTexts = {
+      'title': 'Nowa Rezerwacja',
+      'general': 'Ogólne',
+      'overview': 'Podgląd',
+      'reservationName': 'Nazwa Rezerwacji',
+      'reservationCode': 'Kod Rezerwacji',
+      'reservationTime': 'Czas Rezerwacji:',
+      'day': 'Dzień',
+      'start': 'Start',
+      'duration': 'Czas [min]',
+      'room': 'Sala',
+      'group': 'Grupa',
+      'submit': 'Potwierdź',
+    };
+
+    final Map<String, String> englishTexts = {
+      'title': 'New Reservation',
+      'general': 'General',
+      'overview': 'Overview',
+      'reservationName': 'Reservation Name',
+      'reservationCode': 'Reservation Code',
+      'reservationTime': 'Reservation Time:',
+      'day': 'Day',
+      'start': 'Start',
+      'duration': 'Duration [min]',
+      'room': 'Classroom',
+      'group': 'Group',
+      'submit': 'Submit',
+    };
+
+    // Choose the appropriate texts based on the global language setting
+    texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
+  }
+
   void _navigateToEndPage() {
     if (_formKey.currentState!.validate()) {
       final String name = _nameController.text;
@@ -66,7 +142,7 @@ class _NewReservationStartPageState extends State<NewReservationStartPage> {
   @override
   Widget build(BuildContext context) {
     return BasePage(
-      title: 'Nowa Rezerwacja',
+      title: texts['title'] ?? 'New Reservation',
       leftButtonAction: () => Navigator.pop(context),
       leftButtonIcon: Icons.arrow_back,
       body: Padding(
@@ -80,127 +156,60 @@ class _NewReservationStartPageState extends State<NewReservationStartPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'General',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      texts['general'] ?? 'General',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(width: 16.0),
                     Text(
-                      'Overview',
+                      texts['overview'] ?? 'Overview',
                       style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
               ),
               SizedBox(height: 16.0),
-              TextFormField(
+              _buildTextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Nazwa Rezerwacji',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
-                  }
-                  return null;
-                },
+                labelText: texts['reservationName'] ?? 'Reservation Name',
               ),
               SizedBox(height: 16.0),
-              TextFormField(
+              _buildTextFormField(
                 controller: _codeController,
-                decoration: InputDecoration(
-                  labelText: 'Kod Rezerwacji',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a code';
-                  }
-                  return null;
-                },
+                labelText: texts['reservationCode'] ?? 'Reservation Code',
               ),
               SizedBox(height: 16.0),
               Text(
-                'Czas rezerwacji:',
+                texts['reservationTime'] ?? 'Reservation Time:',
                 style: TextStyle(fontSize: 16),
               ),
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: _buildTextFormField(
                       controller: _dayController,
-                      decoration: InputDecoration(
-                        labelText: 'Dzień',
-                        hintText: 'MM-dd',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a day';
-                        }
-                        try {
-                          DateFormat('MM-dd').parse(value);
-                        } catch (e) {
-                          return 'Please enter a valid day';
-                        }
-                        return null;
-                      },
+                      labelText: texts['day'] ?? 'Day',
+                      hintText: 'MM-dd',
                     ),
                   ),
                   SizedBox(width: 8.0),
                   Expanded(
-                    child: TextFormField(
+                    child: _buildTextFormField(
                       controller: _startController,
-                      decoration: InputDecoration(
-                        labelText: 'Start',
-                        hintText: 'HH:mm',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a start time';
-                        }
-                        try {
-                          DateFormat('HH:mm').parse(value);
-                        } catch (e) {
-                          return 'Please enter a valid start time';
-                        }
-                        return null;
-                      },
+                      labelText: texts['start'] ?? 'Start',
+                      hintText: 'HH:mm',
                     ),
                   ),
                   SizedBox(width: 8.0),
                   Expanded(
-                    child: TextFormField(
+                    child: _buildTextFormField(
                       controller: _durationController,
-                      decoration: InputDecoration(
-                        labelText: 'Czas [min]',
-                        hintText: 'minutes',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(),
-                      ),
+                      labelText: texts['duration'] ?? 'Duration [min]',
+                      hintText: 'minutes',
                       keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value != null &&
-                            value.isNotEmpty &&
-                            int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                 ],
@@ -209,61 +218,87 @@ class _NewReservationStartPageState extends State<NewReservationStartPage> {
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: _buildTextFormField(
                       controller: _roomController,
-                      decoration: InputDecoration(
-                        labelText: 'Sala',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a room';
-                        }
-                        return null;
-                      },
+                      labelText: texts['room'] ?? 'Room',
                     ),
                   ),
                   SizedBox(width: 8.0),
                   Expanded(
-                    child: TextFormField(
+                    child: _buildTextFormField(
                       controller: _groupController,
-                      decoration: InputDecoration(
-                        labelText: 'Grupa',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a group';
-                        }
-                        return null;
-                      },
+                      labelText: texts['group'] ?? 'Group',
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 16.0),
               Center(
-                child: SizedBox(
-                  width: 110, // Set the desired width here
-                  child: ElevatedButton(
-                    onPressed: _navigateToEndPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFED1C24), // Button color
-                    ),
-                    child: Text(
-                      '>',
-                      style: TextStyle(color: Colors.white), // Text color
-                    ),
+                child: ElevatedButton(
+                  onPressed: _navigateToEndPage,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFED1C24), // Button color
+                    padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0), // Add padding for better appearance
+                  ),
+                  child: Text(
+                    texts['submit'] ?? 'Submit',
+                    style: TextStyle(color: Colors.white), // Text color
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextFormField({
+    required TextEditingController controller,
+    required String labelText,
+    String? hintText,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor, // Use theme's card color
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+              : Colors.black.withOpacity(0.1), // Thin black border for light mode
+          width: 1.0, // Border thickness
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: Offset(0, 4), // Slightly raised shadow
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: labelText,
+          hintText: hintText,
+          filled: true,
+          fillColor: Theme.of(context).cardColor, // Use theme's card color
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide.none, // Remove default border
+          ),
+        ),
+        keyboardType: keyboardType,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter $labelText';
+          }
+          return null;
+        },
       ),
     );
   }

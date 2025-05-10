@@ -1,51 +1,107 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:intl/intl.dart'; // Import the intl package for date formatting
+import 'package:intl/intl.dart';
 import 'home_page.dart';
 import 'globals.dart' as globals;
+import 'main.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   LoginPage({super.key});
 
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final String _errorMessage = '';
   final Map<String, String> localCredentials = {
-  'admin': '123',
-};
+    'admin': '123',
+  };
+  late Map<String, String> texts;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize texts based on the current language
+    _updateTexts();
+
+    // Listen to language changes
+    globals.languageNotifier.addListener(_onLanguageChange);
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener when the widget is disposed
+    globals.languageNotifier.removeListener(_onLanguageChange);
+    super.dispose();
+  }
+
+  void _onLanguageChange() {
+    setState(() {
+      // Update texts when the language changes
+      _updateTexts();
+    });
+  }
+
+  void _updateTexts() {
+    // Define translated texts for both languages
+    final Map<String, String> polishTexts = {
+      'email': 'Email',
+      'password': 'Hasło',
+      'login': 'Zaloguj',
+      'invalidEmailOrLogin': 'Podaj poprawny email lub login.',
+      'invalidCredentials': 'Złe hasło lub email. Spróbuj ponownie.',
+      'error': 'Błąd',
+      'ok': 'OK',
+    };
+
+    final Map<String, String> englishTexts = {
+      'email': 'Email',
+      'password': 'Password',
+      'login': 'Log In',
+      'invalidEmailOrLogin': 'Enter a valid email or login.',
+      'invalidCredentials': 'Invalid email or password. Try again.',
+      'error': 'Error',
+      'ok': 'OK',
+    };
+
+    // Choose the appropriate texts based on the global language setting
+    texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
+  }
 
   Future<void> _login(BuildContext context) async {
     String emailOrLogin = emailController.text;
     String password = passwordController.text;
 
-      // Check local credentials first
-  if (localCredentials.containsKey(emailOrLogin) &&
-      localCredentials[emailOrLogin] == password) {
-    // Local login successful
-    globals.globalFullName = 'Local User';
-    globals.globalUserType = 'Admin'; // Set user type for local login
-    globals.globalAssigned = true; // Assume authenticated
-    globals.globalEmail = 'local@example.com';
-    globals.globalGroup = 'Local Group';
+    // Check local credentials first
+    if (localCredentials.containsKey(emailOrLogin) &&
+        localCredentials[emailOrLogin] == password) {
+      globals.globalFullName = 'Local User';
+      globals.globalUserType = 'Admin';
+      globals.globalAssigned = true;
+      globals.globalEmail = 'local@example.com';
+      globals.globalGroup = 'Local Group';
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomePage(), // Navigate to the home page
-      ),
-    );
-    return;
-  }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(),
+        ),
+      );
+      return;
+    }
 
     if (!_isValidEmail(emailOrLogin) && !_isValidLogin(emailOrLogin)) {
-      _showErrorDialog(context, 'Podaj poprawny email lub login.');
+      _showErrorDialog(context, texts['invalidEmailOrLogin']!);
       return;
     }
 
     final response = await http.post(
-      Uri.parse(
-          'http://127.0.0.1:8000/api/check_login/'),
+      Uri.parse('http://192.168.0.248:8000/api/check_login/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -60,41 +116,35 @@ class LoginPage extends StatelessWidget {
       if (data['status'] == 'success') {
         final userData = data['user_data'];
         globals.globalFullName = '${userData['name']} ${userData['surname']}';
-        globals.globalUserType = userData['permissions'] == 1
-            ? 'Admin'
-            : 'Student'; // Set user type based on permissions
-        globals.globalAssigned =
-            userData['isAuthenticated'] == 1; // Ensure boolean type
+        globals.globalUserType =
+            userData['permissions'] == 1 ? 'Admin' : 'Student';
+        globals.globalAssigned = userData['isAuthenticated'] == 1;
         globals.globalEmail = userData['email'];
         globals.globalGroup = userData['group'];
 
-        // Fetch reservations for today
         await _fetchReservationsForToday();
 
         Navigator.push(
           context,
-          MaterialPageRoute(
-              builder: (context) => HomePage()), // Navigate to the home page
+          MaterialPageRoute(builder: (context) => HomePage()),
         );
       } else {
         _showErrorDialog(context, data['message']);
       }
     } else {
-      _showErrorDialog(context, 'Złe hasło lub email. Spróbuj ponownie.');
+      _showErrorDialog(context, texts['invalidCredentials']!);
     }
   }
 
   Future<void> _fetchReservationsForToday() async {
     final response = await http.post(
-      Uri.parse(
-          'http://127.0.0.1:8000/api/list_reservations/'),
+      Uri.parse('http://192.168.0.248:8000/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
       body: jsonEncode(<String, String>{
         'group': globals.globalGroup ?? '',
-        'date': DateFormat('yyyy-MM-dd')
-            .format(DateTime.now()), // Fetch reservations for today
+        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
       }),
     );
 
@@ -102,8 +152,6 @@ class LoginPage extends StatelessWidget {
       final data = jsonDecode(response.body);
       if (data['status'] == 'success') {
         globals.globalReservations = data['reservations'];
-        print(
-            'Reservations fetched: ${globals.globalReservations}'); // Debugging: Print the fetched reservations
       } else {
         print('Failed to fetch reservations: ${data['message']}');
       }
@@ -118,7 +166,6 @@ class LoginPage extends StatelessWidget {
   }
 
   bool _isValidLogin(String login) {
-    // Add your login validation logic here if needed
     return login.isNotEmpty;
   }
 
@@ -127,11 +174,11 @@ class LoginPage extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Error'),
+          title: Text(texts['error']!),
           content: Text(message),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: Text(texts['ok']!),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -144,25 +191,9 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove the back button
-        title: Stack(
-          children: [
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'images/logo-pjwstk.png',
-                    height: 40,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return BasePage(
+      title: 'Login',
+      showLeftButton: false, // Hide the "Home" button
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
@@ -170,42 +201,40 @@ class LoginPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 300, // Set the desired width here
+                width: 300,
                 child: TextField(
                   controller: emailController,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: 'Email',
-                    alignLabelWithHint: true,
+                    labelText: texts['email'],
                   ),
                 ),
               ),
               SizedBox(height: 16.0),
               SizedBox(
-                width: 300, // Set the desired width here
+                width: 300,
                 child: TextField(
                   controller: passwordController,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: 'Hasło',
-                    alignLabelWithHint: true,
+                    labelText: texts['password'],
                   ),
                   obscureText: true,
                 ),
               ),
               SizedBox(height: 16.0),
               SizedBox(
-                width: 110, // Set the desired width here
+                width: 110,
                 child: ElevatedButton(
                   onPressed: () => _login(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFED1C24), // Button color
+                    backgroundColor: Color(0xFFED1C24),
                   ),
                   child: Text(
-                    'Zaloguj',
-                    style: TextStyle(color: Colors.white), // Text color
+                    texts['login']!,
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),

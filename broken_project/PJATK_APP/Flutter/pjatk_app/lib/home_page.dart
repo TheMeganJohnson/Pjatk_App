@@ -1,6 +1,8 @@
 // filepath: /c:/Users/coret/Documents/Flutter/pjatk_app/lib/home_page.dart
 import 'package:flutter/material.dart';
 import 'globals.dart' as globals;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'your_reserve.dart';
 import 'new_reser_start.dart';
 import 'main.dart';
@@ -8,14 +10,114 @@ import 'globals.dart';
 import 'sidebar.dart';
 import 'package:intl/intl.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    print(
-        'Reservations in HomePage: ${globals.globalReservations}'); // Debugging: Print the reservations
+  _HomePageState createState() => _HomePageState();
+}
 
+class _HomePageState extends State<HomePage> {
+  DateTime selectedDate = DateTime.now();
+  List<Map<String, dynamic>> todaysReservations = [];
+  late Map<String, String> texts = {
+    'upcoming': '',
+    'yourReservations': '',
+    'view': '',
+    'newReservation': '',
+    'create': '',
+    'noReservations': '',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize texts based on the current language
+    _updateTexts();
+
+    // Listen to language changes
+    globals.languageNotifier.addListener(_onLanguageChange);
+
+    // Fetch reservations when the page loads
+    _fetchReservationsForToday();
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener when the widget is disposed
+    globals.languageNotifier.removeListener(_onLanguageChange);
+    super.dispose();
+  }
+
+  void _onLanguageChange() {
+    setState(() {
+      // Update texts when the language changes
+      _updateTexts();
+    });
+  }
+
+  void _updateTexts() {
+    // Define translated texts for both languages
+    final Map<String, String> polishTexts = {
+      'upcoming': 'Nadchodzące',
+      'yourReservations': 'Twoje Rezerwacje',
+      'view': 'Wyświetl',
+      'newReservation': 'Nowa Rezerwacja',
+      'create': 'Stwórz',
+      'noReservations': 'Brak nadchodzących rezerwacji',
+      'room': 'Sala',
+    };
+
+    final Map<String, String> englishTexts = {
+      'upcoming': 'Upcoming',
+      'yourReservations': 'Your Reservations',
+      'view': 'View',
+      'newReservation': 'New Reservation',
+      'create': 'Create',
+      'noReservations': 'No upcoming reservations',
+      'room': 'Classroom',
+    };
+
+    // Choose the appropriate texts based on the global language setting
+    texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
+  }
+
+  Future<void> _fetchReservationsForToday() async {
+    final response = await http.post(
+      Uri.parse('http://192.168.0.248:8000/api/list_reservations/'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'group': globals.globalGroup ?? '',
+        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status'] == 'success') {
+        setState(() {
+          todaysReservations = List<Map<String, dynamic>>.from(data['reservations']);
+
+          // Sort reservations by 'from_datetime'
+          todaysReservations.sort((a, b) {
+            final DateTime aTime = DateTime.parse(a['from_datetime']);
+            final DateTime bTime = DateTime.parse(b['from_datetime']);
+            return aTime.compareTo(bTime);
+          });
+        });
+      } else {
+        print('Failed to fetch reservations: ${data['message']}');
+      }
+    } else {
+      print('Failed to fetch reservations: ${response.reasonPhrase}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BasePage(
       title: 'Home',
       addRightPadding: true,
@@ -26,164 +128,213 @@ class HomePage extends StatelessWidget {
         );
       },
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Nadchodzące',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16.0),
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 2,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), // Increased horizontal padding
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    texts['upcoming']!,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.refresh, color: Theme.of(context).iconTheme.color), // Use theme's icon color
+                    onPressed: _fetchReservationsForToday,
                   ),
                 ],
               ),
-              child: globals.globalReservations != null &&
-                      globals.globalReservations!.isNotEmpty
-                  ? ListView.builder(
-                      shrinkWrap:
-                          true, // Ensure the ListView does not take the entire space
-                      physics:
-                          NeverScrollableScrollPhysics(), // Disable scrolling for the ListView
-                      itemCount: globals.globalReservations!.length,
-                      itemBuilder: (context, index) {
-                        final reservation = globals.globalReservations![index];
-                        return ListTile(
-                          title: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '${reservation['name']}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18, // Adjust the font size
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          subtitle: Text(
-                              'Sala: ${reservation['room']}, ${DateFormat('HH:mm').format(DateTime.parse(reservation['from_datetime']))}'),
-                        );
-                      },
-                    )
-                  : Text('Brak nadchodzących rezerwacji'),
-            ),
-            SizedBox(height: 24.0), // Space between the boxes
-            // Your Reservations and New Reservation Box
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
-                          spreadRadius: 2,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+              SizedBox(height: 16.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0), // Additional padding for the container
+                child: Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor, // Use theme's card color
+                    borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+                          : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                      width: 1.0, // Border thickness
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Twoje Rezerwacje',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 8.0),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MyReservationsPage()),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                            : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                        spreadRadius: 2,
+                        blurRadius: 8,
+                        offset: Offset(0, 4), // Slightly raised shadow
+                      ),
+                    ],
+                  ),
+                  child: todaysReservations.isNotEmpty
+                      ? ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: todaysReservations.length,
+                          itemBuilder: (context, index) {
+                            final reservation = todaysReservations[index];
+                            return ListTile(
+                              title: Text(
+                                reservation['name'],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${texts['room']}: ${reservation['room']}, ${DateFormat('HH:mm').format(DateTime.parse(reservation['from_datetime']))}',
+                                style: TextStyle(
+                                  color: Theme.of(context).textTheme.bodyMedium?.color, // Use theme's text color
+                                ),
+                              ),
                             );
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFED1C24), // Button color
-                          ),
-                          child: Text(
-                            'Wyświetl',
-                            style: TextStyle(color: Colors.white), // Text color
+                        )
+                      : Text(
+                          texts['noReservations']!,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
-                SizedBox(width: 16.0), // Space between the boxes
-                if (globalUserType != 'Student') // Check account type
+              ),
+              SizedBox(height: 24.0),
+              Row(
+                children: [
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 2,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0), // Additional padding for the container
+                      child: Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor, // Use theme's card color
+                          borderRadius: BorderRadius.circular(12.0),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+                                : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                            width: 1.0, // Border thickness
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Nowa Rezerwacja',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                                  : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                              spreadRadius: 2,
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // Slightly raised shadow
                             ),
-                          ),
-                          SizedBox(height: 8.0),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        NewReservationStartPage()),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Color(0xFFED1C24), // Button color
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              texts['yourReservations']!,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                              ),
                             ),
-                            child: Text(
-                              'Stwórz',
-                              style:
-                                  TextStyle(color: Colors.white), // Text color
+                            SizedBox(height: 8.0),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => MyReservationsPage()),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFFED1C24),
+                              ),
+                              child: Text(
+                                texts['view']!,
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-              ],
-            ),
-          ],
+                  SizedBox(width: 16.0),
+                  if (globals.globalUserType != 'Student')
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0), // Additional padding for the container
+                        child: Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor, // Use theme's card color
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
+                                  : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                              width: 1.0, // Border thickness
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
+                                    : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                                spreadRadius: 2,
+                                blurRadius: 8,
+                                offset: Offset(0, 4), // Slightly raised shadow
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                texts['newReservation']!,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                                ),
+                              ),
+                              SizedBox(height: 8.0),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            NewReservationStartPage()),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFFED1C24),
+                                ),
+                                child: Text(
+                                  texts['create']!,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 32.0), // Extra space at the bottom for full shadow visibility
+            ],
+          ),
         ),
       ),
     );
