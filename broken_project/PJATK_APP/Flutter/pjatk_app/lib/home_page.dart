@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'your_reserve.dart';
 import 'new_reser_start.dart';
 import 'main.dart';
-import 'globals.dart';
 import 'sidebar.dart';
 import 'package:intl/intl.dart';
 import 'reservation_details.dart';
