@@ -1,0 +1,2 @@
+C:/Users/coret/Documents/GitHub/Pjatk_App/broken_project/PJATK_APP/Flutter/pjatk_app/android/app/.cxx/Debug/641v1u12/x86/CMakeFiles/edit_cache.dir
+C:/Users/coret/Documents/GitHub/Pjatk_App/broken_project/PJATK_APP/Flutter/pjatk_app/android/app/.cxx/Debug/641v1u12/x86/CMakeFiles/rebuild_cache.dir
