@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart' as login;
 import 'globals.dart' as globals;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final isDarkMode = prefs.getBool('isDarkMode') ?? false;
+  themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
   runApp(const MyApp());
 }
 
@@ -162,7 +166,7 @@ class _BasePageState extends State<BasePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'v.05 May 2025 | PJATK',
+                    'v.06 May 2025 | PJATK',
                     style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
                   Text(

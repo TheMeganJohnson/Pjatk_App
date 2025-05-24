@@ -4,6 +4,7 @@ import 'globals.dart' as globals;
 import 'main.dart';
 import 'sidebar.dart';
 import 'report.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   SettingsPage({super.key});
@@ -39,12 +40,15 @@ class _SettingsPageState extends State<SettingsPage> {
     switchValues[0] = globals.globalIsDarkMode ?? false;
 
     switchActions.addAll([
-      () {
+      () async {
         setState(() {
           switchValues[0] = !switchValues[0];
           globals.globalIsDarkMode = switchValues[0];
-          themeNotifier.value = switchValues[0] ? ThemeMode.dark : ThemeMode.light; // Update the theme
+          themeNotifier.value = switchValues[0] ? ThemeMode.dark : ThemeMode.light;
         });
+        // Save to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isDarkMode', switchValues[0]);
       },
       () {
         // Action for the second switch

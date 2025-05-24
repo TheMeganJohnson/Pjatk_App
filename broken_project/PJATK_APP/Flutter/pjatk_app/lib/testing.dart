@@ -1,59 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:dartdap/dartdap.dart';
 import 'globals.dart' as globals;
+import 'package:shared_preferences/shared_preferences.dart';
 
-class TestingPage extends StatefulWidget {
-  @override
-  _TestingPageState createState() => _TestingPageState();
-}
+class TestingPage extends StatelessWidget {
+  Future<void> testLdapConnection() async {
+    const String ldapHost = 'pjwstk.edu.pl';
+    const int ldapPort = 389;
+    const int ldapsPort = 636;
+    const String bindDN = 'cn=s23576,ou=usrs,dc=pjwstk,dc=edu,dc=pl';
+    const String password = '5123Noodle3215';
+    const String baseDN = 'dc=pjwstk,dc=edu,dc=pl';
 
-class _TestingPageState extends State<TestingPage> {
-  List<dynamic> _reservations = [];
-  String _message = '';
+    Future<bool> tryLdap({required bool ssl, required int port}) async {
+      try {
+        final ldap = LdapConnection(
+          host: ldapHost,
+          port: port,
+          ssl: ssl,
+          bindDN: DN(bindDN),
+          password: password,
+        );
+        await ldap.bind(dn: DN(bindDN), password: password);
+        print('LDAP bind successful! (SSL: $ssl, Port: $port)');
 
-  Future<void> _fetchReservations() async {
-    print(
-        'Fetching reservations for group: ${globals.globalGroup}'); // Debugging: Print the group value
+        final searchResult = await ldap.search(
+          DN(baseDN),
+          Filter.present('objectClass'),
+          ['dn'],
+        );
 
-    final response = await http.post(
-      Uri.parse(
-          'http://192.168.0.107:8000/api/list_reservations/'), // Update with your local IP address
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'group': globals.globalGroup ?? '',
-      }),
-    );
+        await for (final entry in searchResult.stream) {
+          print('Found entry: ${entry.dn}');
+        }
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['status'] == 'success') {
-        setState(() {
-          _reservations = data['reservations'];
-          _message = 'Reservations fetched successfully';
-        });
-        // Print reservations to the console
-        print('Reservations: $_reservations');
-      } else {
-        setState(() {
-          _message =
-              'Failed to fetch reservations: ${data['message']}'; // Debugging: Print the error message
-        });
+        await ldap.close();
+        print('LDAP connection closed.');
+        return true;
+      } catch (e) {
+        print('LDAP connection failed (SSL: $ssl, Port: $port): $e');
+        return false;
       }
-    } else {
-      setState(() {
-        _message =
-            'Failed to fetch reservations: ${response.reasonPhrase}'; // Debugging: Print the HTTP error
-      });
+    }
+
+    bool connected = await tryLdap(ssl: false, port: ldapPort);
+    if (!connected) {
+      connected = await tryLdap(ssl: true, port: ldapsPort);
+      if (!connected) {
+        print('LDAP connection failed: Could not connect with or without SSL.');
+      }
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchReservations();
+  Future<void> resetFirstLoginFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_logged_in', false);
+    await prefs.remove('user_pin');
+    print('First login flag and PIN have been reset.');
   }
 
   @override
@@ -62,25 +65,29 @@ class _TestingPageState extends State<TestingPage> {
       appBar: AppBar(
         title: Text('Testing Page'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_message),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _reservations.length,
-                itemBuilder: (context, index) {
-                  final reservation = _reservations[index];
-                  return ListTile(
-                    title: Text(reservation['name']),
-                    subtitle: Text(
-                        'Room: ${reservation['room']}, Code: ${reservation['code']}'),
-                    trailing: Text(
-                        'Duration: ${reservation['duration_minutes']} mins'),
-                  );
-                },
-              ),
+            ElevatedButton(
+              onPressed: () async {
+                await testLdapConnection();
+              },
+              child: Text('Test LDAP Connection'),
+            ),
+            SizedBox(height: 16), // Space between buttons
+            ElevatedButton(
+              onPressed: () {
+                print('lastScannedQrContent: ${globals.lastScannedQrContent}');
+              },
+              child: Text('Print lastScannedQrContent'),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                await resetFirstLoginFlag();
+              },
+              child: Text('Reset First Login & PIN'),
             ),
           ],
         ),

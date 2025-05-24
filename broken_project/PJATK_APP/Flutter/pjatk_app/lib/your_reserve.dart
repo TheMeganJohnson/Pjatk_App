@@ -168,9 +168,11 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                 DropdownButton<String>(
                   value: DateFormat('yyyy-MM-dd').format(selectedDate),
                   items: dates.map((String date) {
+                    final parsedDate = DateFormat('yyyy-MM-dd').parse(date);
+                    final displayDate = DateFormat('dd MMM').format(parsedDate); // e.g., 24 May
                     return DropdownMenuItem<String>(
                       value: date,
-                      child: Text(date),
+                      child: Text(displayDate),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -184,7 +186,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                 Text(
                   texts['title']!,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -255,7 +257,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                       ),
                                     ),
                                     Expanded(
-                                      child: Divider( // Use theme's divider color
+                                      child: Divider(// Use theme's divider color
                                         thickness: 1.0,
                                       ),
                                     ),

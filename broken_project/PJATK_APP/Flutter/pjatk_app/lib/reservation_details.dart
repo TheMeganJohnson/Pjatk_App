@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'globals.dart' as globals;
-import 'main.dart'; // Import the custom AppBar
+import 'main.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ReservationDetailsPage extends StatefulWidget {
   final Map<String, dynamic> reservationData;
@@ -28,6 +30,8 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
     'openDoor': '',
     'doorOpened': '',
   };
+
+  String? scannedQrData;
 
   @override
   void initState() {
@@ -64,7 +68,6 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
       'startTime': 'Godzina Rozpoczęcia',
       'group': 'Grupa',
       'user': 'Prowadzący',
-      'verified': 'Potwierdzone',
       'yes': 'Tak',
       'no': 'Nie',
       'openDoor': 'Otwórz drzwi',
@@ -79,7 +82,6 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
       'startTime': 'Start Time',
       'group': 'Group',
       'user': 'User',
-      'verified': 'Verified',
       'yes': 'Yes',
       'no': 'No',
       'openDoor': 'Open Door',
@@ -90,18 +92,97 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
+  Future<void> _scanQrAndShowDialog(BuildContext context) async {
+    String? qrData;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Scan QR Code'),
+          content: SizedBox(
+            width: 300,
+            height: 300,
+            child: MobileScanner(
+              onDetect: (capture) {
+                final List<Barcode> barcodes = capture.barcodes;
+                if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                  qrData = barcodes.first.rawValue;
+                  Navigator.of(context).pop(); // Close scanner dialog
+                }
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+    if (qrData != null) {
+      // Check if it's a YouTube link
+      final youtubeRegex = RegExp(r'^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/');
+      if (youtubeRegex.hasMatch(qrData!)) {
+        final url = Uri.parse(qrData!);
+        try {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          return;
+        } catch (e) {
+          // If launching fails, show the link in a dialog
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Could not open YouTube'),
+              content: SelectableText(qrData!),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        // Store in global for future use
+        globals.lastScannedQrContent = qrData;
+      }
+      // Otherwise, show the dialog
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('QR Code Content'),
+          content: SingleChildScrollView(
+            child: SelectableText(
+              qrData!,
+              style: TextStyle(fontSize: 18),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Parse the date and time from the reservation data
     DateTime date = DateTime.parse(widget.reservationData['from_datetime']);
 
-    // Calculate the time range for the button to be active
+    // Calculate the time range for the button to be active (15 min before to 15 min after end)
     DateTime startTime = date.subtract(Duration(minutes: 15));
-    DateTime endTime =
-        date.add(Duration(minutes: widget.reservationData['duration_minutes']));
+    DateTime endTime = date.add(Duration(minutes: widget.reservationData['duration_minutes'] + 15));
 
     bool isButtonActive =
-        DateTime.now().isAfter(startTime) && DateTime.now().isBefore(endTime);
+        DateTime.now().toUtc().isAfter(startTime) && DateTime.now().toUtc().isBefore(endTime);
 
     return BasePage(
       title: texts['title'] ?? 'Reservation Details',
@@ -177,29 +258,19 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
                     '${texts['user'] ?? 'User'}: ${widget.reservationData['user']}',
                     style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
                   ),
-                  Text(
-                    '${texts['verified'] ?? 'Verified'}: ${widget.reservationData['verified'] == true ? (texts['yes'] ?? 'Yes') : (texts['no'] ?? 'No')}',
-                    style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
-                  ),
                 ],
               ),
             ),
             Spacer(),
-            if (globals.globalUserType != 'Student') // Check if the user is not a student
+            if (globals.globalUserType != 'Student')
               Center(
                 child: ElevatedButton(
                   onPressed: isButtonActive
-                      ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(texts['doorOpened'] ?? 'You opened the door.')),
-                          );
-                        }
+                      ? () => _scanQrAndShowDialog(context)
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isButtonActive
-                        ? Colors.red
-                        : Colors.grey, // Change button color based on active state
-                    foregroundColor: Colors.white, // Change text color to white
+                    backgroundColor: isButtonActive ? Color(0xFFED1C24) : Colors.grey,
+                    foregroundColor: Colors.white,
                   ),
                   child: Text(texts['openDoor'] ?? 'Open Door'),
                 ),
@@ -207,6 +278,24 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
             Spacer(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Update QRViewPage to NOT pop to the reservation list if the dialog is open
+class QRViewPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Scan QR Code')),
+      body: MobileScanner(
+        onDetect: (capture) {
+          final List<Barcode> barcodes = capture.barcodes;
+          if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+            Navigator.pop(context, barcodes.first.rawValue);
+          }
+        },
       ),
     );
   }

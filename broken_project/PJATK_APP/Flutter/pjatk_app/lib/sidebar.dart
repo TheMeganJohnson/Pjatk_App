@@ -6,6 +6,7 @@ import 'user_account.dart';
 import 'your_reserve.dart';
 import 'globals.dart' as globals;
 import 'settings.dart';
+import 'testing.dart';
 
 class SidebarPage extends StatefulWidget {
   const SidebarPage({super.key});
@@ -79,6 +80,16 @@ class _SidebarPageState extends State<SidebarPage> {
         );
       },
     ];
+
+    // Add a new button labeled "Testing"
+    prefilledTexts.add('Testing');
+    buttonActions.add(() {
+      // Define the action for the "Testing" button
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TestingPage()), // Replace with your TestingPage
+      );
+    });
 
     return BasePage(
       title: globals.globalLanguagePolish == true ? 'Menu' : 'Sidebar',

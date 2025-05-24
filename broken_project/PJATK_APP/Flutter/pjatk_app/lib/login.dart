@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import 'home_page.dart';
 import 'globals.dart' as globals;
 import 'main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'pin_setup.dart';
+import 'pin_entry.dart';
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
@@ -25,12 +28,28 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-
-    // Initialize texts based on the current language
     _updateTexts();
-
-    // Listen to language changes
     globals.languageNotifier.addListener(_onLanguageChange);
+    _checkForPin();
+  }
+
+  Future<void> _checkForPin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pin = prefs.getString('user_pin');
+    if (pin != null && pin.isNotEmpty) {
+      // Show PIN entry dialog/page instead of login
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PinEntryPage()),
+      );
+      if (result == true) {
+        // PIN correct, go to home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+      }
+    }
   }
 
   @override
@@ -86,6 +105,14 @@ class _LoginPageState extends State<LoginPage> {
       globals.globalEmail = 'local@example.com';
       globals.globalGroup = 'Local Group';
 
+      // Save user info to SharedPreferences for PIN login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_fullName', globals.globalFullName ?? '');
+      await prefs.setString('user_userType', globals.globalUserType ?? '');
+      await prefs.setBool('user_assigned', globals.globalAssigned ?? false);
+      await prefs.setString('user_email', globals.globalEmail ?? '');
+      await prefs.setString('user_group', globals.globalGroup ?? '');
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -116,18 +143,43 @@ class _LoginPageState extends State<LoginPage> {
       if (data['status'] == 'success') {
         final userData = data['user_data'];
         globals.globalFullName = '${userData['name']} ${userData['surname']}';
-        globals.globalUserType =
-            userData['permissions'] == 1 ? 'Admin' : 'Student';
-        globals.globalAssigned = userData['isAuthenticated'] == 1;
+        globals.globalUserType = userData['permissions'] == 1 ? 'Admin' : 'Student';
+        globals.globalAssigned = userData['assigned'] ?? false;
         globals.globalEmail = userData['email'];
         globals.globalGroup = userData['group'];
 
-        await _fetchReservationsForToday();
+        // Save to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_fullName', globals.globalFullName ?? '');
+        await prefs.setString('user_userType', globals.globalUserType ?? '');
+        await prefs.setBool('user_assigned', globals.globalAssigned ?? false);
+        await prefs.setString('user_email', globals.globalEmail ?? '');
+        await prefs.setString('user_group', globals.globalGroup ?? '');
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
+        await _fetchReservationsForToday();
+        
+
+        final isFirstLogin = !(prefs.getBool('has_logged_in') ?? false);
+
+        if (isFirstLogin) {
+          await prefs.setBool('has_logged_in', true);
+          // Navigate to PIN setup
+          final pinSet = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PinSetupPage()),
+          );
+          if (pinSet == true) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          }
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        }
       } else {
         _showErrorDialog(context, data['message']);
       }

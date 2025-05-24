@@ -14,5 +14,6 @@ List<dynamic>? globalReservations = [];
 List<Map<String, dynamic>> todaysReservations = [];
 String? globalGroup;
 bool? globalLanguagePolish = true;
+String? lastScannedQrContent;
 
 ValueNotifier<bool> languageNotifier = ValueNotifier(globalLanguagePolish ?? true);

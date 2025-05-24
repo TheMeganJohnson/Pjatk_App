@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'login.dart';
 import 'main.dart';
@@ -99,21 +100,25 @@ class _UserAccountPageState extends State<UserAccountPage> {
                       texts['fullName']!, globals.globalFullName ?? ''),
                   _buildDetailRow(
                       texts['userType']!, globals.globalUserType ?? ''),
-                  _buildDetailRow(texts['cardUID']!, globals.globalCardUID ?? ''),
-                  _buildDetailRow(
-                    texts['assignedPhone']!,
-                    globals.globalAssigned == true ? texts['yes']! : texts['no']!,
-                  ),
+                  //_buildDetailRow(texts['cardUID']!, globals.globalCardUID ?? ''),
+                  //_buildDetailRow(
+                  //  texts['assignedPhone']!,
+                  //  globals.globalAssigned == true ? texts['yes']! : texts['no']!,
+                  //),
                 ],
               ),
             ),
             Spacer(),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('has_logged_in', false);
+                  await prefs.remove('user_pin');
+                  Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => LoginPage()),
+                    (Route<dynamic> route) => false,
                   );
                 },
                 style: ElevatedButton.styleFrom(
