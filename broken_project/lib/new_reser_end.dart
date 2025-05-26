@@ -166,17 +166,6 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the reservation's start and end times
-    final reservationStartTime =
-        DateTime.parse(widget.newReservation['from_datetime']);
-    final reservationEndTime = reservationStartTime
-        .add(Duration(minutes: widget.newReservation['duration_minutes']));
-
-    // Ensure the datetime is formatted correctly
-    final String reservationStartTimeFormatted =
-        DateFormat('yyyy-MM-dd HH:mm:ss').format(reservationStartTime);
-    final String reservationEndTimeFormatted =
-        DateFormat('yyyy-MM-dd HH:mm:ss').format(reservationEndTime);
 
     return BasePage(
       title: texts['title'] ?? 'New Reservation',
