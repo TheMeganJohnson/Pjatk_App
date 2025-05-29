@@ -1,0 +1,2 @@
+C:/Users/coret/Documents/GitHub/Pjatk_App/broken_project/android/app/.cxx/Debug/4c662o2l/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/coret/Documents/GitHub/Pjatk_App/broken_project/android/app/.cxx/Debug/4c662o2l/armeabi-v7a/CMakeFiles/rebuild_cache.dir
