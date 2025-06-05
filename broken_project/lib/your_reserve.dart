@@ -100,8 +100,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
 
   Future<void> _fetchReservationsForSelectedDate() async {
     final response = await http.post(
-      Uri.parse(
-          'http://192.168.0.248:8000/api/list_reservations/'),
+      Uri.parse('http://${globals.pcIP}/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -138,18 +137,19 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
   }
 
   Color _parseColor(String colorString, {bool isDarkMode = false}) {
-  // Parse the color from the database
-  Color baseColor = Color(int.parse(colorString, radix: 16) + 0xFF000000);
+    // Parse the color from the database
+    Color baseColor = Color(int.parse(colorString, radix: 16) + 0xFF000000);
 
-  // If dark mode is enabled, darken the color
-  if (isDarkMode) {
-    baseColor = baseColor.withRed((baseColor.red * 0.8).toInt())
-                         .withGreen((baseColor.green * 0.8).toInt())
-                         .withBlue((baseColor.blue * 0.8).toInt());
+    // If dark mode is enabled, darken the color
+    if (isDarkMode) {
+      baseColor = baseColor
+          .withRed((baseColor.red * 0.8).toInt())
+          .withGreen((baseColor.green * 0.8).toInt())
+          .withBlue((baseColor.blue * 0.8).toInt());
+    }
+
+    return baseColor;
   }
-
-  return baseColor;
-}
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +169,8 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                   value: DateFormat('yyyy-MM-dd').format(selectedDate),
                   items: dates.map((String date) {
                     final parsedDate = DateFormat('yyyy-MM-dd').parse(date);
-                    final displayDate = DateFormat('dd MMM').format(parsedDate); // e.g., 24 May
+                    final displayDate =
+                        DateFormat('dd MMM').format(parsedDate); // e.g., 24 May
                     return DropdownMenuItem<String>(
                       value: date,
                       child: Text(displayDate),
@@ -203,12 +204,12 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                       );
                     },
                   ),
-                  IconButton(
-      icon: Icon(Icons.refresh),
-      onPressed: () {
-        _fetchReservationsForSelectedDate(); // Refresh data for the selected date
-      },
-    ),
+                IconButton(
+                  icon: Icon(Icons.refresh),
+                  onPressed: () {
+                    _fetchReservationsForSelectedDate(); // Refresh data for the selected date
+                  },
+                ),
                 Spacer(), // Add a spacer to push the text to the center
               ],
             ),
@@ -220,7 +221,8 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                       16.0), // Add margin to move away from edges
                   height: 960.0, // Adjusted height to fix bottom overflow issue
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor, // Use theme's card color
+                    color:
+                        Theme.of(context).cardColor, // Use theme's card color
                     borderRadius:
                         BorderRadius.circular(16.0), // More rounded corners
                     boxShadow: [
@@ -244,7 +246,9 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                 height: 60.0,
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    bottom: BorderSide(color: Color(0xFF74788D)), // Use theme's divider color
+                                    bottom: BorderSide(
+                                        color: Color(
+                                            0xFF74788D)), // Use theme's divider color
                                   ),
                                 ),
                                 child: Row(
@@ -253,11 +257,16 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                       width: 50.0,
                                       child: Text(
                                         '${(index + 6).toString().padLeft(2, '0')}:00',
-                                        style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color), // Use theme's text color
+                                        style: TextStyle(
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color), // Use theme's text color
                                       ),
                                     ),
                                     Expanded(
-                                      child: Divider(// Use theme's divider color
+                                      child: Divider(
+                                        // Use theme's divider color
                                         thickness: 1.0,
                                       ),
                                     ),
@@ -288,13 +297,16 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                       right: 16.0,
                                       height: boxHeight,
                                       child: Opacity(
-                                        opacity: reservation['verified'] == true ? 1.0 : 0.5,
+                                        opacity: reservation['verified'] == true
+                                            ? 1.0
+                                            : 0.5,
                                         child: GestureDetector(
                                           onTap: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => details.ReservationDetailsPage(
+                                                builder: (context) => details
+                                                    .ReservationDetailsPage(
                                                   reservationData: reservation,
                                                 ),
                                               ),
@@ -307,38 +319,60 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                             decoration: BoxDecoration(
                                               color: _parseColor(
                                                 reservation['color'],
-                                                isDarkMode: Theme.of(context).brightness == Brightness.dark, // Check if dark mode is active
+                                                isDarkMode: Theme.of(context)
+                                                        .brightness ==
+                                                    Brightness
+                                                        .dark, // Check if dark mode is active
                                               ),
-                                              borderRadius: BorderRadius.circular(8.0),
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.2),
+                                                  color: Colors.black
+                                                      .withOpacity(0.2),
                                                   spreadRadius: 2,
                                                   blurRadius: 4,
                                                   offset: Offset(0, 2),
                                                 ),
                                               ],
                                             ),
-                                            child: reservation['duration_minutes'] >= 60 // Check if the duration is 30 minutes or more
+                                            child: reservation[
+                                                        'duration_minutes'] >=
+                                                    60 // Check if the duration is 30 minutes or more
                                                 ? Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
                                                     children: [
                                                       Text(
                                                         '${reservation['code']}', // Display reservation code
                                                         style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                                                          fontSize: 13 // Use theme's text color
-                                                        ),
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .textTheme
+                                                                .bodyLarge
+                                                                ?.color,
+                                                            fontSize:
+                                                                13 // Use theme's text color
+                                                            ),
                                                       ),
                                                       SizedBox(height: 4.0),
                                                       Text(
                                                         '${texts['room']!}: ${reservation['room']}, ${DateFormat('HH:mm').format(startTime)}',
                                                         style: TextStyle(
-                                                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                                                          fontSize: 10 // Use theme's text color
-                                                        ),
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .textTheme
+                                                                .bodyMedium
+                                                                ?.color,
+                                                            fontSize:
+                                                                10 // Use theme's text color
+                                                            ),
                                                       ),
                                                     ],
                                                   )
@@ -350,24 +384,33 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                   }).toList(),
                                 )
                               : Center(
-                      child: Text(
-                        texts['noReservations']!,
-                        style: TextStyle(fontSize: 16.0, color: Theme.of(context).textTheme.bodyLarge?.color), // Use theme's text color
-                      ),
-                    ),
+                                  child: Text(
+                                    texts['noReservations']!,
+                                    style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.color), // Use theme's text color
+                                  ),
+                                ),
                         ),
                         // Current time red line
-                      if (currentTimeOffset != null)
-                        Positioned(
-                          top: currentTimeOffset,
-                          left: 0.0, // Extend to the left edge of the timetable
-                          right: 0.0, // Extend to the right edge of the timetable
-                          child: Container(
-                            height: 2.0,
-                            margin: const EdgeInsets.only(left: 50.0, right: 16.0), // Boundaries of the timetable
-                            color: Colors.red,
+                        if (currentTimeOffset != null)
+                          Positioned(
+                            top: currentTimeOffset,
+                            left:
+                                0.0, // Extend to the left edge of the timetable
+                            right:
+                                0.0, // Extend to the right edge of the timetable
+                            child: Container(
+                              height: 2.0,
+                              margin: const EdgeInsets.only(
+                                  left: 50.0,
+                                  right: 16.0), // Boundaries of the timetable
+                              color: Colors.red,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),

@@ -87,7 +87,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _fetchReservationsForToday() async {
     final response = await http.post(
-      Uri.parse('http://192.168.0.248:8000/api/list_reservations/'),
+      Uri.parse('http://${globals.pcIP}/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -101,7 +101,8 @@ class _HomePageState extends State<HomePage> {
       final data = jsonDecode(response.body);
       if (data['status'] == 'success') {
         setState(() {
-          todaysReservations = List<Map<String, dynamic>>.from(data['reservations']);
+          todaysReservations =
+              List<Map<String, dynamic>>.from(data['reservations']);
 
           // Sort reservations by 'from_datetime'
           todaysReservations.sort((a, b) {
@@ -145,35 +146,48 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.color, // Use theme's text color
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.refresh, color: Theme.of(context).iconTheme.color), // Use theme's icon color
+                      icon: Icon(Icons.refresh,
+                          color: Theme.of(context)
+                              .iconTheme
+                              .color), // Use theme's icon color
                       onPressed: _fetchReservationsForToday,
                     ),
                   ],
                 ),
                 SizedBox(height: 16.0),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0), // Additional padding for the container
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0), // Additional padding for the container
                   child: GestureDetector(
                     child: Container(
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor, // Use theme's card color
+                        color: Theme.of(context)
+                            .cardColor, // Use theme's card color
                         borderRadius: BorderRadius.circular(12.0),
                         border: Border.all(
                           color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                              : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                              ? Colors.white.withOpacity(
+                                  0.2) // Thin white border for dark mode
+                              : Colors.black.withOpacity(
+                                  0.1), // Thin black border for light mode
                           width: 1.0, // Border thickness
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                                : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white.withOpacity(
+                                        0.05) // Light shadow for dark mode
+                                    : Colors.black.withOpacity(
+                                        0.1), // Dark shadow for light mode
                             spreadRadius: 2,
                             blurRadius: 8,
                             offset: Offset(0, 4), // Slightly raised shadow
@@ -187,7 +201,8 @@ class _HomePageState extends State<HomePage> {
                               itemCount: todaysReservations.length,
                               itemBuilder: (context, index) {
                                 final reservation = todaysReservations[index];
-                                final isVerified = reservation['verified'] == true;
+                                final isVerified =
+                                    reservation['verified'] == true;
 
                                 return ListTile(
                                   title: Text(
@@ -195,21 +210,29 @@ class _HomePageState extends State<HomePage> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
-                                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color,
                                     ),
                                   ),
                                   subtitle: Text(
                                     '${texts['room']}: ${reservation['room']}, ${DateFormat('HH:mm').format(DateTime.parse(reservation['from_datetime']))}'
                                     '${isVerified ? '' : ' - ${texts['notVerified'] ?? 'Not verified'}'}',
                                     style: TextStyle(
-                                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color,
                                     ),
                                   ),
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ReservationDetailsPage(reservationData: reservation),
+                                        builder: (context) =>
+                                            ReservationDetailsPage(
+                                                reservationData: reservation),
                                       ),
                                     );
                                   },
@@ -219,7 +242,10 @@ class _HomePageState extends State<HomePage> {
                           : Text(
                               texts['noReservations']!,
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color,
                               ),
                             ),
                     ),
@@ -230,22 +256,31 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0), // Additional padding for the container
+                        padding: const EdgeInsets.symmetric(
+                            horizontal:
+                                8.0), // Additional padding for the container
                         child: Container(
                           padding: const EdgeInsets.all(16.0),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor, // Use theme's card color
+                            color: Theme.of(context)
+                                .cardColor, // Use theme's card color
                             borderRadius: BorderRadius.circular(12.0),
                             border: Border.all(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                                  : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withOpacity(
+                                      0.2) // Thin white border for dark mode
+                                  : Colors.black.withOpacity(
+                                      0.1), // Thin black border for light mode
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                                    : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white.withOpacity(
+                                        0.05) // Light shadow for dark mode
+                                    : Colors.black.withOpacity(
+                                        0.1), // Dark shadow for light mode
                                 spreadRadius: 2,
                                 blurRadius: 8,
                                 offset: Offset(0, 4), // Slightly raised shadow
@@ -254,7 +289,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                           child: globals.globalUserType == 'Student'
                               ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
@@ -262,7 +298,10 @@ class _HomePageState extends State<HomePage> {
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
                                         ),
                                       ),
                                     ),
@@ -271,7 +310,9 @@ class _HomePageState extends State<HomePage> {
                                       onPressed: () {
                                         Navigator.push(
                                           context,
-                                          MaterialPageRoute(builder: (context) => MyReservationsPage()),
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  MyReservationsPage()),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
@@ -279,7 +320,9 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       child: Text(
                                         texts['view']!,
-                                        style: TextStyle(color: Colors.white, fontSize: 10.0),
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10.0),
                                       ),
                                     ),
                                   ],
@@ -292,7 +335,10 @@ class _HomePageState extends State<HomePage> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.color,
                                       ),
                                     ),
                                     SizedBox(height: 8.0),
@@ -300,7 +346,9 @@ class _HomePageState extends State<HomePage> {
                                       onPressed: () {
                                         Navigator.push(
                                           context,
-                                          MaterialPageRoute(builder: (context) => MyReservationsPage()),
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  MyReservationsPage()),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
@@ -308,7 +356,9 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       child: Text(
                                         texts['view']!,
-                                        style: TextStyle(color: Colors.white, fontSize: 10.0),
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10.0),
                                       ),
                                     ),
                                   ],
@@ -320,26 +370,36 @@ class _HomePageState extends State<HomePage> {
                       SizedBox(width: 16.0),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0), // Additional padding for the container
+                          padding: const EdgeInsets.symmetric(
+                              horizontal:
+                                  8.0), // Additional padding for the container
                           child: Container(
                             padding: const EdgeInsets.all(16.0),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor, // Use theme's card color
+                              color: Theme.of(context)
+                                  .cardColor, // Use theme's card color
                               borderRadius: BorderRadius.circular(12.0),
                               border: Border.all(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                                    : Colors.black.withOpacity(0.1), // Thin black border for light mode
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white.withOpacity(
+                                        0.2) // Thin white border for dark mode
+                                    : Colors.black.withOpacity(
+                                        0.1), // Thin black border for light mode
                                 width: 1.0, // Border thickness
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                                      : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white.withOpacity(
+                                          0.05) // Light shadow for dark mode
+                                      : Colors.black.withOpacity(
+                                          0.1), // Dark shadow for light mode
                                   spreadRadius: 2,
                                   blurRadius: 8,
-                                  offset: Offset(0, 4), // Slightly raised shadow
+                                  offset:
+                                      Offset(0, 4), // Slightly raised shadow
                                 ),
                               ],
                             ),
@@ -351,7 +411,10 @@ class _HomePageState extends State<HomePage> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color, // Use theme's text color
                                   ),
                                 ),
                                 SizedBox(height: 8.0),
@@ -369,8 +432,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   child: Text(
                                     texts['create']!,
-                                    style: TextStyle(color: Colors.white, fontSize: 10.0),
-                                    
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 10.0),
                                   ),
                                 ),
                               ],
@@ -381,7 +444,9 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ],
                 ),
-                SizedBox(height: 32.0), // Extra space at the bottom for full shadow visibility
+                SizedBox(
+                    height:
+                        32.0), // Extra space at the bottom for full shadow visibility
               ],
             ),
           ),

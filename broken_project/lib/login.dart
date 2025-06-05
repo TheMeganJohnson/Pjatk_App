@@ -128,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     final response = await http.post(
-      Uri.parse('http://192.168.0.248:8000/api/check_login/'),
+      Uri.parse('http://${globals.pcIP}/api/check_login/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -143,7 +143,8 @@ class _LoginPageState extends State<LoginPage> {
       if (data['status'] == 'success') {
         final userData = data['user_data'];
         globals.globalFullName = '${userData['name']} ${userData['surname']}';
-        globals.globalUserType = userData['permissions'] == 1 ? 'Admin' : 'Student';
+        globals.globalUserType =
+            userData['permissions'] == 1 ? 'Admin' : 'Student';
         globals.globalAssigned = userData['assigned'] ?? false;
         globals.globalEmail = userData['email'];
         globals.globalGroup = userData['group'];
@@ -157,7 +158,6 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('user_group', globals.globalGroup ?? '');
 
         await _fetchReservationsForToday();
-        
 
         final isFirstLogin = !(prefs.getBool('has_logged_in') ?? false);
 
@@ -190,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _fetchReservationsForToday() async {
     final response = await http.post(
-      Uri.parse('http://192.168.0.248:8000/api/list_reservations/'),
+      Uri.parse('http://${globals.pcIP}/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },

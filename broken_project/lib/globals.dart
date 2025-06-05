@@ -1,5 +1,6 @@
 // filepath: /c:/Users/coret/Documents/Flutter/pjatk_app/lib/globals.dart
 library;
+
 import 'package:flutter/material.dart';
 
 String? globalEmail;
@@ -15,5 +16,8 @@ List<Map<String, dynamic>> todaysReservations = [];
 String? globalGroup;
 bool? globalLanguagePolish = true;
 String? lastScannedQrContent;
+String? pcIP = "172.19.240.49:8000";
 
-ValueNotifier<bool> languageNotifier = ValueNotifier(globalLanguagePolish ?? true);
+ValueNotifier<bool> languageNotifier = ValueNotifier(
+  globalLanguagePolish ?? true,
+);

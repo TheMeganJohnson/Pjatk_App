@@ -84,8 +84,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
         'Fetching reservations for group: $group on date: $date'); // Debug print
 
     final response = await http.post(
-      Uri.parse(
-          'http://192.168.0.248:8000/api/list_reservations/'),
+      Uri.parse('http://${globals.pcIP}/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -116,7 +115,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
   Future<void> _submitReservation() async {
     final response = await http.post(
       Uri.parse(
-          'http://192.168.0.248:8000/api/create_reservation/'), // Update with your local IP address
+          'http://${globals.pcIP}/api/create_reservation/'), // Update with your local IP address
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -166,7 +165,6 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return BasePage(
       title: texts['title'] ?? 'New Reservation',
       leftButtonAction: () => Navigator.pop(context),
@@ -205,18 +203,22 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
                 borderRadius: BorderRadius.circular(16.0), // Rounded edges
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                    : Colors.black.withOpacity(0.1), // Thin black border for light mode
-                width: 1.0,
+                      ? Colors.white
+                          .withOpacity(0.2) // Thin white border for dark mode
+                      : Colors.black
+                          .withOpacity(0.1), // Thin black border for light mode
+                  width: 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                      : Colors.black.withOpacity(0.1), // Dark shadow for light mode
-                  spreadRadius: 2,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
+                        ? Colors.white
+                            .withOpacity(0.05) // Light shadow for dark mode
+                        : Colors.black
+                            .withOpacity(0.1), // Dark shadow for light mode
+                    spreadRadius: 2,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
@@ -280,25 +282,32 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
                           margin: const EdgeInsets.symmetric(vertical: 4.0),
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
-                          color: _parseColor(reservation['color'], opacity: isNewReservation ? 0.5 : 1.0),
-                          borderRadius: BorderRadius.circular(8.0),
-                          border: Border.all(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                                : Colors.black.withOpacity(0.1), // Thin black border for light mode
-                            width: 1.0, // Border thickness
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                                  : Colors.black.withOpacity(0.1), // Dark shadow for light mode
-                              spreadRadius: 2,
-                              blurRadius: 8,
-                              offset: Offset(0, 4), // Slightly raised shadow
+                            color: _parseColor(reservation['color'],
+                                opacity: isNewReservation ? 0.5 : 1.0),
+                            borderRadius: BorderRadius.circular(8.0),
+                            border: Border.all(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withOpacity(
+                                      0.2) // Thin white border for dark mode
+                                  : Colors.black.withOpacity(
+                                      0.1), // Thin black border for light mode
+                              width: 1.0, // Border thickness
                             ),
-                          ],
-                        ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white.withOpacity(
+                                        0.05) // Light shadow for dark mode
+                                    : Colors.black.withOpacity(
+                                        0.1), // Dark shadow for light mode
+                                spreadRadius: 2,
+                                blurRadius: 8,
+                                offset: Offset(0, 4), // Slightly raised shadow
+                              ),
+                            ],
+                          ),
                           child: ListTile(
                             title: Text(
                               '${reservation['code']}', // Display reservation code
@@ -329,7 +338,7 @@ class _NewReservationEndPageState extends State<NewReservationEndPage> {
               onPressed: _submitReservation,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFFED1C24), // Red background colo
-          
+
                 elevation: 2.0, // Slight shadow for a raised effect
               ),
               child: Text(
