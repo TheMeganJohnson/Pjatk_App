@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/io_client.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_certificate_pinning/http_certificate_pinning.dart'
+    show HttpCertificatePinning, SHA;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'home_page.dart';
@@ -20,10 +25,17 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final String _errorMessage = '';
-  final Map<String, String> localCredentials = {
-    'admin': '123',
-  };
   late Map<String, String> texts;
+
+  final List<String> _serverUrls = [
+    'https://ck.pjwstk.edu.pl/cyfrowe_klucze_app/login-userm/',
+    'https://194.92.77.100:50343/cyfrowe_klucze_app/login-userm/',
+  ];
+
+  final List<String> _sha256Pins = [
+    'fae88b1008028296cb00f16185f51cc2bc8ccb1ebe12f6763844eaa688fd6476',
+    '4d71cf514624474d6e6bf7059ea8fd7b9c85b32b21cca5dd2c2aee592968fe96',
+  ];
 
   @override
   void initState() {
@@ -43,11 +55,47 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (context) => PinEntryPage()),
       );
       if (result == true) {
-        // PIN correct, go to home
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
+        // PIN correct, now check session key with server
+        final serverUrl = await _getWorkingServerUrl();
+        if (serverUrl == null) {
+          _showErrorDialog(
+            context,
+            'No trusted server found or certificate mismatch.',
+          );
+          return;
+        }
+
+        try {
+          final client = await createTrustedClient();
+          // Make a GET request to the same /login-userm/ endpoint
+          final response = await client.get(Uri.parse(serverUrl));
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            final serverSessionKey = data['session_key'];
+            // Get the saved session key (from globals or prefs)
+            final localSessionKey =
+                prefs.getString('user_sessionKey') ?? globals.globalSessionKey;
+
+            if (serverSessionKey == localSessionKey &&
+                serverSessionKey != null &&
+                serverSessionKey.isNotEmpty) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
+            } else {
+              _showErrorDialog(
+                context,
+                'Session key mismatch. Please log in again.',
+              );
+            }
+          } else {
+            _showErrorDialog(context, 'Failed to verify session key.');
+          }
+        } catch (e) {
+          _showErrorDialog(context, 'Error: $e');
+        }
       }
     }
   }
@@ -69,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
   void _updateTexts() {
     // Define translated texts for both languages
     final Map<String, String> polishTexts = {
-      'email': 'Email',
+      'email': 'Nazwa Użytkownika',
       'password': 'Hasło',
       'login': 'Zaloguj',
       'invalidEmailOrLogin': 'Podaj poprawny email lub login.',
@@ -79,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
     };
 
     final Map<String, String> englishTexts = {
-      'email': 'Email',
+      'email': 'Username',
       'password': 'Password',
       'login': 'Log In',
       'invalidEmailOrLogin': 'Enter a valid email or login.',
@@ -92,99 +140,106 @@ class _LoginPageState extends State<LoginPage> {
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
+  Future<String?> _getWorkingServerUrl() async {
+    for (final url in _serverUrls) {
+      try {
+        final uri = Uri.parse(url);
+        final host = uri.host;
+        final result = await HttpCertificatePinning.check(
+          serverURL: uri.origin,
+          headerHttp: {},
+          sha: SHA.SHA256,
+          allowedSHAFingerprints: _sha256Pins,
+          timeout: 5,
+        );
+        print('Pinning result for $host: $result');
+        if (result == "CONNECTION_SECURE") {
+          return url;
+        }
+      } catch (e) {
+        print('Error checking server $url: $e');
+      }
+    }
+    return null;
+  }
+
   Future<void> _login(BuildContext context) async {
-    String emailOrLogin = emailController.text;
+    String username = emailController.text.trim();
     String password = passwordController.text;
 
-    // Check local credentials first
-    if (localCredentials.containsKey(emailOrLogin) &&
-        localCredentials[emailOrLogin] == password) {
-      globals.globalFullName = 'Local User';
-      globals.globalUserType = 'Admin';
-      globals.globalAssigned = true;
-      globals.globalEmail = 'local@example.com';
-      globals.globalGroup = 'Local Group';
-
-      // Save user info to SharedPreferences for PIN login
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_fullName', globals.globalFullName ?? '');
-      await prefs.setString('user_userType', globals.globalUserType ?? '');
-      await prefs.setBool('user_assigned', globals.globalAssigned ?? false);
-      await prefs.setString('user_email', globals.globalEmail ?? '');
-      await prefs.setString('user_group', globals.globalGroup ?? '');
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomePage(),
-        ),
-      );
-      return;
-    }
-
-    if (!_isValidEmail(emailOrLogin) && !_isValidLogin(emailOrLogin)) {
+    if (!_isValidEmail(username) && !_isValidLogin(username)) {
       _showErrorDialog(context, texts['invalidEmailOrLogin']!);
       return;
     }
 
-    final response = await http.post(
-      Uri.parse('http://${globals.pcIP}/api/check_login/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'login': emailOrLogin,
-        'password': password,
-      }),
-    );
+    final serverUrl = await _getWorkingServerUrl();
+    if (serverUrl == null) {
+      _showErrorDialog(
+        context,
+        'No trusted server found or certificate mismatch.',
+      );
+      return;
+    }
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['status'] == 'success') {
-        final userData = data['user_data'];
-        globals.globalFullName = '${userData['name']} ${userData['surname']}';
-        globals.globalUserType =
-            userData['permissions'] == 1 ? 'Admin' : 'Student';
-        globals.globalAssigned = userData['assigned'] ?? false;
-        globals.globalEmail = userData['email'];
-        globals.globalGroup = userData['group'];
+    try {
+      final client = await createTrustedClient();
+      final response = await client.post(
+        Uri.parse(serverUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
 
-        // Save to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_fullName', globals.globalFullName ?? '');
-        await prefs.setString('user_userType', globals.globalUserType ?? '');
-        await prefs.setBool('user_assigned', globals.globalAssigned ?? false);
-        await prefs.setString('user_email', globals.globalEmail ?? '');
-        await prefs.setString('user_group', globals.globalGroup ?? '');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'success') {
+          globals.globalSessionKey = data['session_key'];
+          globals.globalFullName = username;
+          globals.globalUserType = 'Admin';
+          globals.globalEmail = '$username@pjwstk.edu.pl';
+          globals.globalGroup = 'GIs I.7';
 
-        await _fetchReservationsForToday();
-
-        final isFirstLogin = !(prefs.getBool('has_logged_in') ?? false);
-
-        if (isFirstLogin) {
-          await prefs.setBool('has_logged_in', true);
-          // Navigate to PIN setup
-          final pinSet = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PinSetupPage()),
+          // Save to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_fullName', globals.globalFullName ?? '');
+          await prefs.setString('user_userType', globals.globalUserType ?? '');
+          await prefs.setString('user_email', globals.globalEmail ?? '');
+          await prefs.setString('user_group', globals.globalGroup ?? '');
+          await prefs.setString(
+            'user_sessionKey',
+            globals.globalSessionKey ?? '',
           );
-          if (pinSet == true) {
+
+          await _fetchReservationsForToday();
+
+          final isFirstLogin = !(prefs.getBool('has_logged_in') ?? false);
+
+          if (isFirstLogin) {
+            await prefs.setBool('has_logged_in', true);
+            // Navigate to PIN setup
+            final pinSet = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PinSetupPage()),
+            );
+            if (pinSet == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
+            }
+          } else {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => HomePage()),
             );
           }
         } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => HomePage()),
-          );
+          _showErrorDialog(context, data['message']);
         }
       } else {
-        _showErrorDialog(context, data['message']);
+        _showErrorDialog(context, texts['invalidCredentials']!);
       }
-    } else {
-      _showErrorDialog(context, texts['invalidCredentials']!);
+    } catch (e) {
+      _showErrorDialog(context, 'Error: $e');
     }
   }
 
@@ -239,6 +294,19 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
     );
+  }
+
+  Future<IOClient> createTrustedClient() async {
+    final context = SecurityContext(withTrustedRoots: true);
+
+    // Load the certificate from assets
+    final certBytes = await rootBundle.load(
+      'assets/certs/ck.pjwstk.edu.pl.crt',
+    );
+    context.setTrustedCertificatesBytes(certBytes.buffer.asUint8List());
+
+    final httpClient = HttpClient(context: context);
+    return IOClient(httpClient);
   }
 
   @override

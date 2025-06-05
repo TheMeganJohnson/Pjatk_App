@@ -135,6 +135,13 @@ class _TestingPageState extends State<TestingPage> {
               ),
               SizedBox(height: 16),
               ElevatedButton(
+                onPressed: () {
+                  print('globalSessionKey: ${globals.globalSessionKey}');
+                },
+                child: Text('Print globalSessionKey'),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
                 onPressed: () async {
                   await resetFirstLoginFlag();
                 },

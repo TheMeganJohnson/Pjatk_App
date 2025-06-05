@@ -16,7 +16,8 @@ List<Map<String, dynamic>> todaysReservations = [];
 String? globalGroup;
 bool? globalLanguagePolish = true;
 String? lastScannedQrContent;
-String? pcIP = "172.19.240.49:8000";
+String? pcIP = "192.168.0.94:8000";
+String? globalSessionKey;
 
 ValueNotifier<bool> languageNotifier = ValueNotifier(
   globalLanguagePolish ?? true,
