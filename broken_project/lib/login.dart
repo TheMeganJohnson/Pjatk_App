@@ -23,6 +23,9 @@ class _LoginPageState extends State<LoginPage> {
   final String _errorMessage = '';
   late Map<String, String> texts;
 
+  bool _isLoading = false;
+
+
   final List<String> _serverUrls = [
     'https://ck.pjwstk.edu.pl/cyfrowe_klucze_app/login-userm/',
     'https://194.92.77.100:50343/cyfrowe_klucze_app/login-userm/',
@@ -50,8 +53,15 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (context) => PinEntryPage()),
       );
       if (result == true) {
+        setState(() {
+          _isLoading = true; // <-- Show loading indicator
+        });
+
         final serverUrl = await _getWorkingServerUrl();
         if (serverUrl == null) {
+          setState(() {
+            _isLoading = false;
+          });
           _showErrorDialog(context, texts['noTrustedServer']!);
           return;
         }
@@ -62,9 +72,7 @@ class _LoginPageState extends State<LoginPage> {
 
           if (response.statusCode == 200) {
             final data =
-                response.data is String
-                    ? jsonDecode(response.data)
-                    : response.data;
+                response.data is String ? jsonDecode(response.data) : response.data;
             final serverSessionKey = data['session_key'];
             final localSessionKey =
                 prefs.getString('user_sessionKey') ?? globals.globalSessionKey;
@@ -72,20 +80,53 @@ class _LoginPageState extends State<LoginPage> {
             if (serverSessionKey == localSessionKey &&
                 serverSessionKey != null &&
                 serverSessionKey.isNotEmpty) {
+              bool reservationSuccess = true;
+              try {
+                await _fetchReservationsForToday().timeout(
+                  const Duration(seconds: 10),
+                  onTimeout: () async {
+                    reservationSuccess = false;
+                  },
+                );
+              } catch (_) {
+                reservationSuccess = false;
+              }
+              if (!reservationSuccess) {
+                setState(() {
+                  _isLoading = false;
+                });
+                await _showErrorDialog(context, texts['gakkoTimeout']!);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage()),
+                );
+                return;
+              }
+              setState(() {
+                _isLoading = false;
+              });
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => HomePage()),
               );
             } else {
-              // Remove PIN and session key, force re-login and PIN setup
+              setState(() {
+                _isLoading = false;
+              });
               await prefs.remove('user_pin');
               await prefs.remove('user_sessionKey');
               _showErrorDialog(context, texts['sessionKeyMismatch']!);
             }
           } else {
+            setState(() {
+              _isLoading = false;
+            });
             _showErrorDialog(context, texts['failedVerifySession']!);
           }
         } catch (e) {
+          setState(() {
+            _isLoading = false;
+          });
           _showErrorDialog(context, '${texts['error']!}: $e');
         }
       }
@@ -118,6 +159,8 @@ class _LoginPageState extends State<LoginPage> {
       'sessionKeyMismatch':
           'Klucz sesji nie pasuje. Zaloguj się ponownie i ustaw nowy PIN.',
       'failedVerifySession': 'Nie udało się zweryfikować klucza sesji.',
+      'gakkoTimeout': 'Nie można połączyć z GAKKO.',
+      'loading': 'Logowanie...',
     };
 
     final Map<String, String> englishTexts = {
@@ -132,6 +175,8 @@ class _LoginPageState extends State<LoginPage> {
       'sessionKeyMismatch':
           'Session key mismatch. Please log in again and set a new PIN.',
       'failedVerifySession': 'Failed to verify session key.',
+      'gakkoTimeout': 'Cannot connect to GAKKO.',
+      'loading': 'Logging In...',
     };
 
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
@@ -142,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
       try {
         final dio = await NetworkHelper.getDio(sha256Pins: _sha256Pins);
         final response = await dio.head(url).catchError((_) => null);
-        if (response != null && response.statusCode == 200) {
+        if (response.statusCode == 200) {
           return url;
         }
       } catch (e) {}
@@ -151,17 +196,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+    });
+
     String login = loginController.text.trim();
     String password = passwordController.text;
 
     if (!_isValidLogin(login)) {
+      setState(() {
+        _isLoading = false;
+      });
       _showErrorDialog(context, texts['invalidLogin']!);
       return;
     }
 
     final serverUrl = await _getWorkingServerUrl();
     if (serverUrl == null) {
-      _showErrorDialog(context, texts['noTrustedServer']!);
+      setState(() {
+        _isLoading = false;
+      });
+      await _showErrorDialog(context, texts['noTrustedServer']!);
       return;
     }
 
@@ -178,10 +233,13 @@ class _LoginPageState extends State<LoginPage> {
             response.data is String ? jsonDecode(response.data) : response.data;
         if (data['status'] == 'success') {
           globals.globalSessionKey = data['session_key'];
-
+          globals.globalEmail = '$login@pjwstk.edu.pl';
           globals.globalFullName = login;
-          globals.globalUserType = 'Admin';
-          globals.globalEmail = ''; // Not used anymore
+          if (RegExp(r'^s\d{5}$').hasMatch(login)) {
+            globals.globalUserType = 'Student';
+          } else {
+            globals.globalUserType = 'Admin';
+          }
           globals.globalGroup = 'GIs I.7';
 
           final prefs = await SharedPreferences.getInstance();
@@ -193,9 +251,29 @@ class _LoginPageState extends State<LoginPage> {
             globals.globalSessionKey ?? '',
           );
 
-          await _fetchReservationsForToday();
+          try {
+            await _fetchReservationsForToday().timeout(
+              const Duration(seconds: 10),
+              onTimeout: () async {
+                setState(() {
+                  _isLoading = false;
+                });
+                await _showErrorDialog(context, texts['gakkoTimeout']!);
+                return;
+              },
+            );
+          } catch (_) {
+            setState(() {
+              _isLoading = false;
+            });
+            await _showErrorDialog(context, texts['gakkoTimeout']!);
+          }
 
           final isFirstLogin = !(prefs.getBool('has_logged_in') ?? false);
+
+          setState(() {
+            _isLoading = false;
+          });
 
           if (isFirstLogin) {
             await prefs.setBool('has_logged_in', true);
@@ -216,13 +294,31 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
         } else {
-          _showErrorDialog(context, texts['invalidCredentials']!);
+          setState(() {
+            _isLoading = false;
+          });
+          await _showErrorDialog(context, texts['invalidCredentials']!);
         }
       } else {
-        _showErrorDialog(context, texts['invalidCredentials']!);
+        setState(() {
+          _isLoading = false;
+        });
+        await _showErrorDialog(context, texts['invalidCredentials']!);
+      }
+    } on DioException catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (e.response?.statusCode == 401) {
+        await _showErrorDialog(context, texts['invalidCredentials']!);
+      } else {
+        await _showErrorDialog(context, '${texts['error']!}: $e');
       }
     } catch (e) {
-      _showErrorDialog(context, '${texts['error']!}: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      await _showErrorDialog(context, '${texts['error']!}: $e');
     }
   }
 
@@ -248,13 +344,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _isValidLogin(String login) {
-    // Only allow non-empty, no @ character
     return login.isNotEmpty && !login.contains('@');
   }
 
-  void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
+  Future<void> _showErrorDialog(BuildContext context, String message) async {
+    return showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(texts['error']!),
@@ -274,62 +370,79 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BasePage(
-      title: 'Login',
-      showLeftButton: false,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 300,
-                child: TextField(
-                  controller: loginController,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: texts['login'],
+    return WillPopScope(
+      onWillPop: () async => !_isLoading, // Disable back if loading
+      child: BasePage(
+        title: 'Login',
+        showLeftButton: false,
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: _isLoading
+                ? SizedBox(
+                    height: 150,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(texts['loading']!),
+                      ],
+                    ),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 300,
+                        child: TextField(
+                          controller: loginController,
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: texts['login'],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.0),
+                      SizedBox(
+                        width: 300,
+                        child: TextField(
+                          controller: passwordController,
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: texts['password'],
+                          ),
+                          obscureText: true,
+                        ),
+                      ),
+                      SizedBox(height: 16.0),
+                      SizedBox(
+                        width: 110,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            await _login(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFFED1C24),
+                          ),
+                          child: Text(
+                            texts['loginButton']!,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      if (_errorMessage.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16.0),
+                          child: Text(
+                            _errorMessage,
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-              ),
-              SizedBox(height: 16.0),
-              SizedBox(
-                width: 300,
-                child: TextField(
-                  controller: passwordController,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: texts['password'],
-                  ),
-                  obscureText: true,
-                ),
-              ),
-              SizedBox(height: 16.0),
-              SizedBox(
-                width: 110,
-                child: ElevatedButton(
-                  onPressed: () => _login(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFED1C24),
-                  ),
-                  child: Text(
-                    texts['loginButton']!,
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-              if (_errorMessage.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    _errorMessage,
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-            ],
           ),
         ),
       ),

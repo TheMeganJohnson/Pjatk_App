@@ -99,6 +99,9 @@ class _ReportPageState extends State<ReportPage> {
               controller: titleController,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
+                hintText: texts['bugTitle'] == 'Tytuł Błędu'
+                    ? 'Np. Aplikacja się zawiesza podczas XYZ'
+                    : 'E.g. App crashes after XYZ',
               ),
             ),
             SizedBox(height: 16.0),
@@ -111,6 +114,9 @@ class _ReportPageState extends State<ReportPage> {
               maxLines: 5,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
+                hintText: texts['description'] == 'Opis'
+                    ? 'Opisz kroki do zreprodukowania problemu, np. Po zalogowaniu się i kliknięciu XYZ na stronie ABC aplikacja...'
+                    : 'Describe the steps to reproduce the issue, e.g. After logging in and pressing XYZ on page ABC the app...',
               ),
             ),
             SizedBox(height: 16.0),

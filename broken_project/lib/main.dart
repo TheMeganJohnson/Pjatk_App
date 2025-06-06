@@ -37,26 +37,40 @@ class MyApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          darkTheme: ThemeData(
-            fontFamily: 'Poppins',
-            colorScheme: ColorScheme.dark(
-              primary: Color(0xFF1E1E1E),
-              secondary: Color(0xFF434349),
+          darkTheme: ThemeData.dark().copyWith(
+            colorScheme: ThemeData.dark().colorScheme.copyWith(
+              primary: Color(0xFFED1C24), // Red for main actions (e.g., logout)
+              secondary: Color(0xFFED1C24), // Use blue or another color for accents
             ),
-            textTheme: TextTheme(
-              headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
-              bodyLarge: TextStyle(fontSize: 16, color: Colors.white70),
+            textTheme: ThemeData.dark().textTheme.apply(
+              fontFamily: 'Poppins',
             ),
-            scaffoldBackgroundColor: Color(0xFF121212),
-            appBarTheme: AppBarTheme(
-              backgroundColor: Color(0xFF1E1E1E),
-              iconTheme: IconThemeData(color: Colors.white),
+            primaryTextTheme: ThemeData.dark().primaryTextTheme.apply(
+              fontFamily: 'Poppins',
             ),
-            dividerTheme: DividerThemeData(
-              color: Color(0xFFF2F3F8), // Custom divider color for dark theme
-              thickness: 1.0,
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFED1C24), // Red for main buttons
+                foregroundColor: Colors.white,
+              ),
             ),
-            useMaterial3: true,
+            switchTheme: SwitchThemeData(
+              thumbColor: MaterialStateProperty.resolveWith<Color>(
+                (states) => Colors.black, // Brighter, neutral thumb
+              ),
+              trackColor: MaterialStateProperty.resolveWith<Color>(
+                (states) => Color.fromARGB(255, 46, 46, 46), // Brighter, neutral track
+              ),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFED1C24)!, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFED1C24), width: 2.0),
+              ),
+            ),
+            dialogTheme: DialogThemeData(backgroundColor: Colors.grey[900]),
           ),
           themeMode: currentTheme, // Dynamically switch between light and dark themes
           home: login.LoginPage(),
@@ -166,7 +180,7 @@ class _BasePageState extends State<BasePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'v.06 May 2025 | PJATK',
+                    'v.07 May 2025 | PJATK',
                     style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
                   Text(

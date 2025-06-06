@@ -39,24 +39,16 @@ class _UserAccountPageState extends State<UserAccountPage> {
     final Map<String, String> polishTexts = {
       'title': 'Konto użytkownika',
       'email': 'Email:',
-      'fullName': 'Imię i Nazwisko:',
+      'fullName': 'Login:',
       'userType': 'Typ użytkownika:',
-      'cardUID': 'UID Karty:',
-      'assignedPhone': 'Przypisano telefon?',
-      'yes': 'Tak',
-      'no': 'Nie',
       'logout': 'Wyloguj',
     };
 
     final Map<String, String> englishTexts = {
       'title': 'User Account',
       'email': 'Email:',
-      'fullName': 'Full Name:',
+      'fullName': 'Username:',
       'userType': 'User Type:',
-      'cardUID': 'Card UID:',
-      'assignedPhone': 'Assigned Phone?',
-      'yes': 'Yes',
-      'no': 'No',
       'logout': 'Log Out',
     };
 
