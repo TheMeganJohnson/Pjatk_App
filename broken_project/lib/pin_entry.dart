@@ -63,10 +63,7 @@ class _PinEntryPageState extends State<PinEntryPage> {
       globals.globalGroup = prefs.getString('user_group');
       globals.globalIsDarkMode = prefs.getBool('isDarkMode') ?? false;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
+      Navigator.pop(context, true);
     } else {
       setState(() => _error = texts['incorrectPin']);
     }

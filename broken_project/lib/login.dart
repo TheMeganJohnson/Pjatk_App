@@ -1,16 +1,12 @@
-import 'dart:io';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:http/io_client.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_certificate_pinning/http_certificate_pinning.dart'
-    show HttpCertificatePinning, SHA;
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import 'network.dart';
 import 'home_page.dart';
 import 'globals.dart' as globals;
 import 'main.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'pin_setup.dart';
 import 'pin_entry.dart';
 
@@ -22,7 +18,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController loginController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final String _errorMessage = '';
   late Map<String, String> texts;
@@ -49,31 +45,27 @@ class _LoginPageState extends State<LoginPage> {
     final prefs = await SharedPreferences.getInstance();
     final pin = prefs.getString('user_pin');
     if (pin != null && pin.isNotEmpty) {
-      // Show PIN entry dialog/page instead of login
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => PinEntryPage()),
       );
       if (result == true) {
-        // PIN correct, now check session key with server
         final serverUrl = await _getWorkingServerUrl();
         if (serverUrl == null) {
-          _showErrorDialog(
-            context,
-            'No trusted server found or certificate mismatch.',
-          );
+          _showErrorDialog(context, texts['noTrustedServer']!);
           return;
         }
 
         try {
-          final client = await createTrustedClient();
-          // Make a GET request to the same /login-userm/ endpoint
-          final response = await client.get(Uri.parse(serverUrl));
+          final dio = await NetworkHelper.getDio();
+          final response = await dio.get(serverUrl);
 
           if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
+            final data =
+                response.data is String
+                    ? jsonDecode(response.data)
+                    : response.data;
             final serverSessionKey = data['session_key'];
-            // Get the saved session key (from globals or prefs)
             final localSessionKey =
                 prefs.getString('user_sessionKey') ?? globals.globalSessionKey;
 
@@ -85,16 +77,16 @@ class _LoginPageState extends State<LoginPage> {
                 MaterialPageRoute(builder: (context) => HomePage()),
               );
             } else {
-              _showErrorDialog(
-                context,
-                'Session key mismatch. Please log in again.',
-              );
+              // Remove PIN and session key, force re-login and PIN setup
+              await prefs.remove('user_pin');
+              await prefs.remove('user_sessionKey');
+              _showErrorDialog(context, texts['sessionKeyMismatch']!);
             }
           } else {
-            _showErrorDialog(context, 'Failed to verify session key.');
+            _showErrorDialog(context, texts['failedVerifySession']!);
           }
         } catch (e) {
-          _showErrorDialog(context, 'Error: $e');
+          _showErrorDialog(context, '${texts['error']!}: $e');
         }
       }
     }
@@ -102,107 +94,99 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed
     globals.languageNotifier.removeListener(_onLanguageChange);
     super.dispose();
   }
 
   void _onLanguageChange() {
     setState(() {
-      // Update texts when the language changes
       _updateTexts();
     });
   }
 
   void _updateTexts() {
-    // Define translated texts for both languages
     final Map<String, String> polishTexts = {
-      'email': 'Nazwa Użytkownika',
+      'login': 'Login',
       'password': 'Hasło',
-      'login': 'Zaloguj',
-      'invalidEmailOrLogin': 'Podaj poprawny email lub login.',
-      'invalidCredentials': 'Złe hasło lub email. Spróbuj ponownie.',
+      'loginButton': 'Zaloguj',
+      'invalidLogin': 'Podaj poprawny login.',
+      'invalidCredentials': 'Zły login lub hasło. Spróbuj ponownie.',
       'error': 'Błąd',
       'ok': 'OK',
+      'noTrustedServer':
+          'Nie znaleziono zaufanego serwera lub błąd certyfikatu.',
+      'sessionKeyMismatch':
+          'Klucz sesji nie pasuje. Zaloguj się ponownie i ustaw nowy PIN.',
+      'failedVerifySession': 'Nie udało się zweryfikować klucza sesji.',
     };
 
     final Map<String, String> englishTexts = {
-      'email': 'Username',
+      'login': 'Login',
       'password': 'Password',
-      'login': 'Log In',
-      'invalidEmailOrLogin': 'Enter a valid email or login.',
-      'invalidCredentials': 'Invalid email or password. Try again.',
+      'loginButton': 'Log In',
+      'invalidLogin': 'Enter a valid login.',
+      'invalidCredentials': 'Invalid login or password. Try again.',
       'error': 'Error',
       'ok': 'OK',
+      'noTrustedServer': 'No trusted server found or certificate mismatch.',
+      'sessionKeyMismatch':
+          'Session key mismatch. Please log in again and set a new PIN.',
+      'failedVerifySession': 'Failed to verify session key.',
     };
 
-    // Choose the appropriate texts based on the global language setting
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
   Future<String?> _getWorkingServerUrl() async {
     for (final url in _serverUrls) {
       try {
-        final uri = Uri.parse(url);
-        final host = uri.host;
-        final result = await HttpCertificatePinning.check(
-          serverURL: uri.origin,
-          headerHttp: {},
-          sha: SHA.SHA256,
-          allowedSHAFingerprints: _sha256Pins,
-          timeout: 5,
-        );
-        print('Pinning result for $host: $result');
-        if (result == "CONNECTION_SECURE") {
+        final dio = await NetworkHelper.getDio(sha256Pins: _sha256Pins);
+        final response = await dio.head(url).catchError((_) => null);
+        if (response != null && response.statusCode == 200) {
           return url;
         }
-      } catch (e) {
-        print('Error checking server $url: $e');
-      }
+      } catch (e) {}
     }
     return null;
   }
 
   Future<void> _login(BuildContext context) async {
-    String username = emailController.text.trim();
+    String login = loginController.text.trim();
     String password = passwordController.text;
 
-    if (!_isValidEmail(username) && !_isValidLogin(username)) {
-      _showErrorDialog(context, texts['invalidEmailOrLogin']!);
+    if (!_isValidLogin(login)) {
+      _showErrorDialog(context, texts['invalidLogin']!);
       return;
     }
 
     final serverUrl = await _getWorkingServerUrl();
     if (serverUrl == null) {
-      _showErrorDialog(
-        context,
-        'No trusted server found or certificate mismatch.',
-      );
+      _showErrorDialog(context, texts['noTrustedServer']!);
       return;
     }
 
     try {
-      final client = await createTrustedClient();
-      final response = await client.post(
-        Uri.parse(serverUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
+      final dio = await NetworkHelper.getDio();
+      final response = await dio.post(
+        serverUrl,
+        data: {'username': login, 'password': password},
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data =
+            response.data is String ? jsonDecode(response.data) : response.data;
         if (data['status'] == 'success') {
           globals.globalSessionKey = data['session_key'];
-          globals.globalFullName = username;
+
+          globals.globalFullName = login;
           globals.globalUserType = 'Admin';
-          globals.globalEmail = '$username@pjwstk.edu.pl';
+          globals.globalEmail = ''; // Not used anymore
           globals.globalGroup = 'GIs I.7';
 
-          // Save to SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_fullName', globals.globalFullName ?? '');
           await prefs.setString('user_userType', globals.globalUserType ?? '');
-          await prefs.setString('user_email', globals.globalEmail ?? '');
           await prefs.setString('user_group', globals.globalGroup ?? '');
           await prefs.setString(
             'user_sessionKey',
@@ -215,7 +199,6 @@ class _LoginPageState extends State<LoginPage> {
 
           if (isFirstLogin) {
             await prefs.setBool('has_logged_in', true);
-            // Navigate to PIN setup
             final pinSet = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PinSetupPage()),
@@ -233,47 +216,40 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
         } else {
-          _showErrorDialog(context, data['message']);
+          _showErrorDialog(context, texts['invalidCredentials']!);
         }
       } else {
         _showErrorDialog(context, texts['invalidCredentials']!);
       }
     } catch (e) {
-      _showErrorDialog(context, 'Error: $e');
+      _showErrorDialog(context, '${texts['error']!}: $e');
     }
   }
 
   Future<void> _fetchReservationsForToday() async {
-    final response = await http.post(
-      Uri.parse('http://${globals.pcIP}/api/list_reservations/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
+    final response = await Dio().post(
+      'http://${globals.pcIP}/api/list_reservations/',
+      data: {
         'group': globals.globalGroup ?? '',
         'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-      }),
+      },
+      options: Options(
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data =
+          response.data is String ? jsonDecode(response.data) : response.data;
       if (data['status'] == 'success') {
         globals.globalReservations = data['reservations'];
-      } else {
-        print('Failed to fetch reservations: ${data['message']}');
       }
-    } else {
-      print('Failed to fetch reservations: ${response.reasonPhrase}');
     }
   }
 
-  bool _isValidEmail(String email) {
-    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-    return emailRegex.hasMatch(email);
-  }
-
   bool _isValidLogin(String login) {
-    return login.isNotEmpty;
+    // Only allow non-empty, no @ character
+    return login.isNotEmpty && !login.contains('@');
   }
 
   void _showErrorDialog(BuildContext context, String message) {
@@ -296,24 +272,11 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<IOClient> createTrustedClient() async {
-    final context = SecurityContext(withTrustedRoots: true);
-
-    // Load the certificate from assets
-    final certBytes = await rootBundle.load(
-      'assets/certs/ck.pjwstk.edu.pl.crt',
-    );
-    context.setTrustedCertificatesBytes(certBytes.buffer.asUint8List());
-
-    final httpClient = HttpClient(context: context);
-    return IOClient(httpClient);
-  }
-
   @override
   Widget build(BuildContext context) {
     return BasePage(
       title: 'Login',
-      showLeftButton: false, // Hide the "Home" button
+      showLeftButton: false,
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
@@ -323,11 +286,11 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(
                 width: 300,
                 child: TextField(
-                  controller: emailController,
+                  controller: loginController,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: texts['email'],
+                    labelText: texts['login'],
                   ),
                 ),
               ),
@@ -353,7 +316,7 @@ class _LoginPageState extends State<LoginPage> {
                     backgroundColor: Color(0xFFED1C24),
                   ),
                   child: Text(
-                    texts['login']!,
+                    texts['loginButton']!,
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
