@@ -15,27 +15,23 @@ class _UserAccountPageState extends State<UserAccountPage> {
   @override
   void initState() {
     super.initState();
-
-    // Listen to language changes
     globals.languageNotifier.addListener(_onLanguageChange);
   }
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed
     globals.languageNotifier.removeListener(_onLanguageChange);
     super.dispose();
   }
 
-  void _onLanguageChange() {
-    setState(() {
-      // Rebuild the widget when the language changes
-    });
+  void _onLanguageChange() async {
+    setState(() {});
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Define translated texts for both languages
     final Map<String, String> polishTexts = {
       'title': 'Konto użytkownika',
       'email': 'Email:',
@@ -52,7 +48,6 @@ class _UserAccountPageState extends State<UserAccountPage> {
       'logout': 'Log Out',
     };
 
-    // Choose the appropriate texts based on the global language setting
     final Map<String, String> texts = globals.globalLanguagePolish == true
         ? polishTexts
         : englishTexts;
@@ -67,22 +62,22 @@ class _UserAccountPageState extends State<UserAccountPage> {
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor, // Use theme's card color
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12.0),
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                      : Colors.black.withOpacity(0.1), // Thin black border for light mode
-                  width: 1.0, // Border thickness
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.1),
+                  width: 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                        : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.1),
                     spreadRadius: 2,
                     blurRadius: 8,
-                    offset: Offset(0, 4), // Slightly raised shadow
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
@@ -94,11 +89,6 @@ class _UserAccountPageState extends State<UserAccountPage> {
                       texts['fullName']!, globals.globalFullName ?? ''),
                   _buildDetailRow(
                       texts['userType']!, globals.globalUserType ?? ''),
-                  //_buildDetailRow(texts['cardUID']!, globals.globalCardUID ?? ''),
-                  //_buildDetailRow(
-                  //  texts['assignedPhone']!,
-                  //  globals.globalAssigned == true ? texts['yes']! : texts['no']!,
-                  //),
                 ],
               ),
             ),
@@ -107,6 +97,7 @@ class _UserAccountPageState extends State<UserAccountPage> {
               child: ElevatedButton(
                 onPressed: () async {
                   final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
                   await prefs.setBool('has_logged_in', false);
                   await prefs.remove('user_pin');
                   Navigator.pushAndRemoveUntil(
@@ -116,11 +107,11 @@ class _UserAccountPageState extends State<UserAccountPage> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFED1C24), // Button color
+                  backgroundColor: Color(0xFFED1C24),
                 ),
                 child: Text(
                   texts['logout']!,
-                  style: TextStyle(color: Colors.white), // Text color
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ),

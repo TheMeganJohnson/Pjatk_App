@@ -4,7 +4,6 @@ import 'package:dio/io.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'dart:typed_data';
 
@@ -20,10 +19,8 @@ class NetworkHelper {
     );
     _dio = Dio();
 
-    // Add cookie manager
     _dio!.interceptors.add(CookieManager(_cookieJar!));
 
-    // Add certificate pinning using createHttpClient
     (_dio!.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
       final client = HttpClient();
       client.badCertificateCallback = (
@@ -31,12 +28,9 @@ class NetworkHelper {
         String host,
         int port,
       ) {
-        // Accept self-signed certificates installed on the device
-        // and perform SHA256 pinning if pins are provided
         if (sha256Pins != null && sha256Pins.isNotEmpty) {
           final der = cert.der;
           final sha256 = sha256Convert(der);
-          print('DEBUG: Server cert SHA256: $sha256');
           return sha256Pins.contains(sha256);
         }
         return false;

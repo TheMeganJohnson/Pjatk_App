@@ -1,4 +1,3 @@
-// filepath: /c:/Users/coret/Documents/Flutter/pjatk_app/lib/custom_dropdown.dart
 import 'package:flutter/material.dart';
 
 class CustomDropdown extends StatefulWidget {
@@ -13,10 +12,10 @@ class CustomDropdown extends StatefulWidget {
   });
 
   @override
-  _CustomDropdownState createState() => _CustomDropdownState();
+  CustomDropdownState createState() => CustomDropdownState();
 }
 
-class _CustomDropdownState extends State<CustomDropdown> {
+class CustomDropdownState extends State<CustomDropdown> {
   void _showDropdownMenu() {
     showDialog(
       context: context,
@@ -24,7 +23,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
         return AlertDialog(
           content: SizedBox(
             width: double.maxFinite,
-            height: 300, // Set the desired height for the dropdown menu
+            height: 300,
             child: ListView.builder(
               itemCount: widget.items.length,
               itemBuilder: (BuildContext context, int index) {

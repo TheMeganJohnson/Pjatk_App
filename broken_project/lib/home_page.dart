@@ -1,10 +1,10 @@
 // filepath: /c:/Users/coret/Documents/Flutter/pjatk_app/lib/home_page.dart
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'your_reserve.dart';
-import 'new_reser_start.dart';
 import 'main.dart';
 import 'sidebar.dart';
 import 'package:intl/intl.dart';
@@ -50,17 +50,19 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void _onLanguageChange() {
+  void _onLanguageChange() async {
     setState(() {
       // Update texts when the language changes
       _updateTexts();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   void _updateTexts() {
     // Define translated texts for both languages
     final Map<String, String> polishTexts = {
-      'upcoming': 'Nadchodzące',
+      'upcoming': 'Dzisiejsze Rezerwacje',
       'yourReservations': 'Twoje \nRezerwacje',
       'view': 'Wyświetl',
       'newReservation': 'Nowa \nRezerwacja',
@@ -71,7 +73,7 @@ class _HomePageState extends State<HomePage> {
     };
 
     final Map<String, String> englishTexts = {
-      'upcoming': 'Upcoming',
+      'upcoming': "Today's Reservations",
       'yourReservations': 'Your \nReservations',
       'view': 'View',
       'newReservation': 'New \nReservation',
@@ -144,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                     Text(
                       texts['upcoming']!,
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context)
                             .textTheme
@@ -252,197 +254,75 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 SizedBox(height: 24.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal:
-                                8.0), // Additional padding for the container
-                        child: Container(
-                          padding: const EdgeInsets.all(16.0),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .cardColor, // Use theme's card color
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0), // Align with above
+                  child: Builder(
+                    builder: (context) {
+                      // Make the square about 10% smaller
+                      double side = ((MediaQuery.of(context).size.width - 48 - 16) / 2) * 0.9;
+                      return SizedBox(
+                        width: side,
+                        height: side,
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12.0),
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(12.0),
-                            border: Border.all(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white.withOpacity(
-                                      0.2) // Thin white border for dark mode
-                                  : Colors.black.withOpacity(
-                                      0.1), // Thin black border for light mode
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white.withOpacity(
-                                        0.05) // Light shadow for dark mode
-                                    : Colors.black.withOpacity(
-                                        0.1), // Dark shadow for light mode
-                                spreadRadius: 2,
-                                blurRadius: 8,
-                                offset: Offset(0, 4), // Slightly raised shadow
-                              ),
-                            ],
-                          ),
-                          child: globals.globalUserType == 'Student'
-                              ? Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        texts['yourReservations']!,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8.0),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  MyReservationsPage()),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFFED1C24),
-                                      ),
-                                      child: Text(
-                                        texts['view']!,
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10.0),
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      texts['yourReservations']!,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.color,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8.0),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  MyReservationsPage()),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFFED1C24),
-                                      ),
-                                      child: Text(
-                                        texts['view']!,
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10.0),
-                                      ),
-                                    ),
-                                  ],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MyReservationsPage(),
                                 ),
-                        ),
-                      ),
-                    ),
-                    if (globals.globalUserType != 'Student') ...[
-                      SizedBox(width: 16.0),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal:
-                                  8.0), // Additional padding for the container
-                          child: Container(
-                            padding: const EdgeInsets.all(16.0),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .cardColor, // Use theme's card color
-                              borderRadius: BorderRadius.circular(12.0),
-                              border: Border.all(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white.withOpacity(
-                                        0.2) // Thin white border for dark mode
-                                    : Colors.black.withOpacity(
-                                        0.1), // Thin black border for light mode
-                                width: 1.0, // Border thickness
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white.withOpacity(
-                                          0.05) // Light shadow for dark mode
-                                      : Colors.black.withOpacity(
-                                          0.1), // Dark shadow for light mode
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                  offset:
-                                      Offset(0, 4), // Slightly raised shadow
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12.0),
+                                border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white.withOpacity(0.2)
+                                      : Colors.black.withOpacity(0.1),
+                                  width: 1.0,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  texts['newReservation']!,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge
-                                        ?.color, // Use theme's text color
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white.withOpacity(0.05)
+                                        : Colors.black.withOpacity(0.1),
+                                    spreadRadius: 2,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
                                   ),
-                                ),
-                                SizedBox(height: 8.0),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              NewReservationStartPage()),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFFED1C24),
+                                ],
+                                color: Theme.of(context).cardColor,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.event_note,
+                                    color: Color(0xFFED1C24),
+                                    size: side * 0.35,
                                   ),
-                                  child: Text(
-                                    texts['create']!,
+                                  SizedBox(height: 12),
+                                  Text(
+                                    texts['yourReservations']!,
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
-                                        color: Colors.white, fontSize: 10.0),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                      );
+                    },
+                  ),
                 ),
                 SizedBox(
                     height:

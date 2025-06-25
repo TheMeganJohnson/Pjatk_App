@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart';
 import 'globals.dart' as globals;
-import 'home_page.dart';
 
 class PinEntryPage extends StatefulWidget {
   const PinEntryPage({super.key});
@@ -13,6 +12,7 @@ class PinEntryPage extends StatefulWidget {
 
 class _PinEntryPageState extends State<PinEntryPage> {
   final TextEditingController _pinController = TextEditingController();
+  int _pinTriesLeft = 3;
   String? _error;
   late Map<String, String> texts;
 
@@ -21,6 +21,7 @@ class _PinEntryPageState extends State<PinEntryPage> {
     super.initState();
     _updateTexts();
     globals.languageNotifier.addListener(_onLanguageChange);
+    _loadTries();
   }
 
   @override
@@ -29,10 +30,12 @@ class _PinEntryPageState extends State<PinEntryPage> {
     super.dispose();
   }
 
-  void _onLanguageChange() {
+  void _onLanguageChange() async {
     setState(() {
       _updateTexts();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   void _updateTexts() {
@@ -40,15 +43,28 @@ class _PinEntryPageState extends State<PinEntryPage> {
       'enterPin': 'Wprowadź PIN',
       'login': 'Zaloguj',
       'incorrectPin': 'Nieprawidłowy PIN',
+      'attemptsLeft': 'Pozostało prób',
+      'noTriesLeft': 'Brak prób',
+      'loginWithCredentials': 'Zaloguj się loginem i hasłem.',
     };
 
     final Map<String, String> englishTexts = {
       'enterPin': 'Enter PIN',
       'login': 'Login',
       'incorrectPin': 'Incorrect PIN',
+      'attemptsLeft': 'Retries',
+      'noTriesLeft': 'No retries left',
+      'loginWithCredentials': 'Please log in with your login and password.',
     };
 
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
+  }
+
+  Future<void> _loadTries() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pinTriesLeft = prefs.getInt('pin_tries_left') ?? 3;
+    });
   }
 
   Future<void> _checkPin() async {
@@ -63,16 +79,34 @@ class _PinEntryPageState extends State<PinEntryPage> {
       globals.globalGroup = prefs.getString('user_group');
       globals.globalIsDarkMode = prefs.getBool('isDarkMode') ?? false;
 
+      await prefs.setInt('pin_tries_left', 3);
       Navigator.pop(context, true);
     } else {
-      setState(() => _error = texts['incorrectPin']);
+      _pinTriesLeft--;
+      await prefs.setInt('pin_tries_left', _pinTriesLeft);
+      _pinController.clear(); // Clear the field after wrong attempt
+      if (_pinTriesLeft > 0) {
+        setState(() {
+          _error = '${texts['incorrectPin']}. ${texts['attemptsLeft']}: $_pinTriesLeft';
+        });
+      } else {
+        await prefs.remove('user_pin');
+        await prefs.remove('user_sessionKey');
+        await prefs.setInt('pin_tries_left', 3);
+        setState(() {
+          _error = '${texts['noTriesLeft']}. ${texts['loginWithCredentials']}';
+        });
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.of(context).pop(false);
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Disable Android back button
+    return PopScope(
+      canPop: false,
       child: BasePage(
         title: texts['enterPin'] ?? 'Enter PIN',
         showLeftButton: false,

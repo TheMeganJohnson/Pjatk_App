@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'globals.dart' as globals;
-import 'main.dart';
+import '../globals.dart' as globals;
+import '../main.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({super.key});

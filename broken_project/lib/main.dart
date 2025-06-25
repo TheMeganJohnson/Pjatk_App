@@ -7,11 +7,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final isDarkMode = prefs.getBool('isDarkMode') ?? false;
+  globals.globalLanguagePolish = prefs.getBool('language_polish') ?? true;
   themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
   runApp(const MyApp());
 }
 
-// Create a ValueNotifier to track the current theme
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 class MyApp extends StatelessWidget {
@@ -32,15 +32,15 @@ class MyApp extends StatelessWidget {
               bodyLarge: TextStyle(fontSize: 16),
             ),
             dividerTheme: DividerThemeData(
-              color: Color(0xFFEBEDF2), // Custom divider color for light theme
+              color: Color(0xFFEBEDF2),
               thickness: 1.0,
             ),
             useMaterial3: true,
           ),
           darkTheme: ThemeData.dark().copyWith(
             colorScheme: ThemeData.dark().colorScheme.copyWith(
-              primary: Color(0xFFED1C24), // Red for main actions (e.g., logout)
-              secondary: Color(0xFFED1C24), // Use blue or another color for accents
+              primary: Color(0xFFED1C24),
+              secondary: Color(0xFFED1C24),
             ),
             textTheme: ThemeData.dark().textTheme.apply(
               fontFamily: 'Poppins',
@@ -50,21 +50,21 @@ class MyApp extends StatelessWidget {
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFED1C24), // Red for main buttons
+                backgroundColor: Color(0xFFED1C24),
                 foregroundColor: Colors.white,
               ),
             ),
             switchTheme: SwitchThemeData(
-              thumbColor: MaterialStateProperty.resolveWith<Color>(
-                (states) => Colors.black, // Brighter, neutral thumb
+              thumbColor: WidgetStateProperty.resolveWith<Color>(
+                (states) => Colors.black, 
               ),
-              trackColor: MaterialStateProperty.resolveWith<Color>(
-                (states) => Color.fromARGB(255, 46, 46, 46), // Brighter, neutral track
+              trackColor: WidgetStateProperty.resolveWith<Color>(
+                (states) => Color.fromARGB(255, 46, 46, 46),
               ),
             ),
             inputDecorationTheme: InputDecorationTheme(
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFFED1C24)!, width: 1.5),
+                borderSide: BorderSide(color: Color(0xFFED1C24), width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: Color(0xFFED1C24), width: 2.0),
@@ -72,7 +72,7 @@ class MyApp extends StatelessWidget {
             ),
             dialogTheme: DialogThemeData(backgroundColor: Colors.grey[900]),
           ),
-          themeMode: currentTheme, // Dynamically switch between light and dark themes
+          themeMode: currentTheme,
           home: login.LoginPage(),
         );
       },
@@ -99,10 +99,10 @@ class BasePage extends StatefulWidget {
   });
 
   @override
-  _BasePageState createState() => _BasePageState();
+  BasePageState createState() => BasePageState();
 }
 
-class _BasePageState extends State<BasePage> {
+class BasePageState extends State<BasePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,9 +138,9 @@ class _BasePageState extends State<BasePage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2), // Shadow color
-                      blurRadius: 4, // Blur radius for the shadow
-                      offset: Offset(0, 4), // Offset for the shadow
+                      color: Colors.black.withValues(alpha: .2),
+                      blurRadius: 4, 
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
@@ -158,7 +158,7 @@ class _BasePageState extends State<BasePage> {
         ),
       ),
       body: Container(
-        color: Theme.of(context).scaffoldBackgroundColor, // Use theme's background color
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Column(
           children: [
             Expanded(
@@ -166,10 +166,10 @@ class _BasePageState extends State<BasePage> {
             ),
             Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).appBarTheme.backgroundColor, // Use theme's app bar color
+                color: Theme.of(context).appBarTheme.backgroundColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: .1),
                     blurRadius: 10,
                     offset: Offset(0, -2),
                   ),
@@ -180,7 +180,7 @@ class _BasePageState extends State<BasePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'v.07 May 2025 | PJATK',
+                    'v.09 June 2025 | PJATK',
                     style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
                   Text(

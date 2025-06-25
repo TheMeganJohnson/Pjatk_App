@@ -29,10 +29,12 @@ class _PinSetupPageState extends State<PinSetupPage> {
     super.dispose();
   }
 
-  void _onLanguageChange() {
+  void _onLanguageChange() async {
     setState(() {
       _updateTexts();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   void _updateTexts() {
@@ -73,8 +75,8 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Disable Android back button
+    return PopScope(
+      canPop: false, // Disable Android back button
       child: BasePage(
         title: texts['setPin'] ?? 'Set PIN',
         showLeftButton: false,

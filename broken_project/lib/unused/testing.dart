@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'globals.dart' as globals;
+import '../globals.dart' as globals;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TestingPage extends StatefulWidget {
@@ -47,7 +47,7 @@ class _TestingPageState extends State<TestingPage> {
     };
     print('Sending to backend: ${jsonEncode(payload)}'); // Debug print
 
-    const String apiUrl = 'http://172.19.240.49:5000/api/ldap-auth';
+    const String apiUrl = 'http://localhost:5000/api/ldap-auth';
 
     try {
       final response = await http.post(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'main.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,30 +36,25 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
   @override
   void initState() {
     super.initState();
-
-    // Update texts based on the current language
     _updateTexts();
-
-    // Listen to language changes
     globals.languageNotifier.addListener(_onLanguageChange);
   }
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed
     globals.languageNotifier.removeListener(_onLanguageChange);
     super.dispose();
   }
 
-  void _onLanguageChange() {
+  void _onLanguageChange() async {
     setState(() {
-      // Update texts when the language changes
       _updateTexts();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   void _updateTexts() {
-    // Define translated texts for both languages
     final Map<String, String> polishTexts = {
       'title': 'Szczegóły Rezerwacji',
       'room': 'Sala',
@@ -70,7 +66,8 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
       'yes': 'Tak',
       'no': 'Nie',
       'openDoor': 'Otwórz drzwi',
-      'doorOpened': 'Otworzyłeś drzwi.',
+      'doorOpened': 'Drzwi zostały otwarte.',
+      'wrongQr': 'Zły kod QR, drzwi nie zostały otwarte.',
     };
 
     final Map<String, String> englishTexts = {
@@ -84,10 +81,10 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
       'yes': 'Yes',
       'no': 'No',
       'openDoor': 'Open Door',
-      'doorOpened': 'You opened the door.',
+      'doorOpened': 'Door opened successfully.',
+      'wrongQr': 'Wrong QR, doors are not open.',
     };
 
-    // Choose the appropriate texts based on the global language setting
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
@@ -107,7 +104,7 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
                 final List<Barcode> barcodes = capture.barcodes;
                 if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                   qrData = barcodes.first.rawValue;
-                  Navigator.of(context).pop(); // Close scanner dialog
+                  Navigator.of(context).pop();
                 }
               },
             ),
@@ -122,7 +119,21 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
       },
     );
     if (qrData != null) {
-      // Check if it's a YouTube link
+      if (qrData == "QRCodeThatWorks") {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(texts['doorOpened'] ?? 'Door Opened Successfully'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
       final youtubeRegex = RegExp(r'^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/');
       if (youtubeRegex.hasMatch(qrData!)) {
         final url = Uri.parse(qrData!);
@@ -130,7 +141,6 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
           await launchUrl(url, mode: LaunchMode.externalApplication);
           return;
         } catch (e) {
-          // If launching fails, show the link in a dialog
           await showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -146,55 +156,32 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
           );
         }
       } else {
-        // Store in global for future use
-        globals.lastScannedQrContent = qrData;
-      }
-      // Otherwise, show the dialog
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('QR Code Content'),
-          content: SingleChildScrollView(
-            child: SelectableText(
-              qrData!,
-              style: TextStyle(fontSize: 18),
-            ),
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(texts['wrongQr'] ?? 'Wrong QR, doors are not open.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('OK'),
-            ),
-          ],
-        ),
-      );
+        );
+        globals.lastScannedQrContent = qrData;
+        return;
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Remove timezone info from the string to treat as local time
     String raw = widget.reservationData['from_datetime'];
     String naive = raw.replaceFirst(RegExp(r'([Zz]|[+-]\d{2}:\d{2})$'), '');
-
     DateTime date = DateTime.parse(naive);
-    print('DEBUG: from_datetime raw: $raw');
-    print('DEBUG: naive parsed: $naive');
-    print('DEBUG: date.toString(): $date');
-    print('DEBUG: date.isUtc: ${date.isUtc}');
-    print('DEBUG: date.timeZoneName: ${date.timeZoneName}');
-    print('DEBUG: date.timeZoneOffset: ${date.timeZoneOffset}');
-
-    // Calculate the time range for the button to be active (15 min before to 15 min after end)
     DateTime startTime = date.subtract(Duration(minutes: 15));
     DateTime endTime = date.add(Duration(minutes: widget.reservationData['duration_minutes'] + 15));
-
     DateTime now = DateTime.now();
-    print('DEBUG: now: $now');
-    print('DEBUG: now.timeZoneName: ${now.timeZoneName}');
-    print('DEBUG: now.timeZoneOffset: ${now.timeZoneOffset}');
-    print('DEBUG: Button active from: $startTime to $endTime');
-
     bool isButtonActive = now.isAfter(startTime) && now.isBefore(endTime);
 
     return BasePage(
@@ -209,41 +196,41 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: double.infinity, // Take the full width of the screen
+              width: double.infinity,
               constraints: BoxConstraints(
-                maxHeight: 300.0, // Set a maximum height for the container
+                maxHeight: 300.0,
               ),
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor, // Use theme's card color
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12.0),
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.2) // Thin white border for dark mode
-                      : Colors.black.withOpacity(0.1), // Thin black border for light mode
-                  width: 1.0, // Border thickness
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.1),
+                  width: 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withOpacity(0.05) // Light shadow for dark mode
-                        : Colors.black.withOpacity(0.1), // Dark shadow for light mode
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.1),
                     spreadRadius: 2,
                     blurRadius: 8,
-                    offset: Offset(0, 4), // Slightly raised shadow
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min, // Adjust height based on content
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     '${widget.reservationData['name']}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color, // Use theme's text color
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                   SizedBox(height: 8.0),
@@ -296,7 +283,6 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
   }
 }
 
-// Update QRViewPage to NOT pop to the reservation list if the dialog is open
 class QRViewPage extends StatelessWidget {
   const QRViewPage({super.key});
 

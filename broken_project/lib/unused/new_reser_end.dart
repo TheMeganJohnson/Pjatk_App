@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'main.dart'; // Ensure main.dart is imported
+import '../main.dart'; // Ensure main.dart is imported
 import 'new_reser_finish.dart'; // Import the finish page
-import 'globals.dart' as globals; // Import your globals file
+import '../globals.dart' as globals; // Import your globals file
 
 class NewReservationEndPage extends StatefulWidget {
   final Map<String, dynamic> newReservation;

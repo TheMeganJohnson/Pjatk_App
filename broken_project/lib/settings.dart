@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'globals.dart' as globals;
 import 'main.dart';
 import 'sidebar.dart';
-import 'report.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'pin_setup.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,28 +17,19 @@ class _SettingsPageState extends State<SettingsPage> {
   late Map<String, String> texts = {
     'title': 'Settings',
     'darkMode': 'Dark Mode',
-    'notifications': 'Notifications',
-    'accessibility': 'Accessibility Mode',
-    'isWorking': 'Is it working?',
-    'reportProblem': 'Report a Problem',
+    'resetPin': 'Reset PIN',
+    'pinResetSuccess': 'PIN resetted correctly',
   };
 
-  final List<bool> switchValues = [false, false, false, true];
+  final List<bool> switchValues = [false];
   final List<VoidCallback> switchActions = [];
 
   @override
   void initState() {
     super.initState();
-
-    // Initialize texts based on the current language
     _updateTexts();
-
-    // Listen to language changes
     globals.languageNotifier.addListener(_onLanguageChange);
-
-    // Load the state from the global variable
     switchValues[0] = globals.globalIsDarkMode ?? false;
-
     switchActions.addAll([
       () async {
         setState(() {
@@ -46,69 +37,65 @@ class _SettingsPageState extends State<SettingsPage> {
           globals.globalIsDarkMode = switchValues[0];
           themeNotifier.value = switchValues[0] ? ThemeMode.dark : ThemeMode.light;
         });
-        // Save to SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isDarkMode', switchValues[0]);
-      },
-      () {
-        // Action for the second switch
-        print('Notifications toggled');
-      },
-      () {
-        // Action for the third switch
-        print('Accessibility Mode toggled');
-      },
-      () {
-        // Action for the fourth switch
-        print('Is it working? toggled');
       },
     ]);
   }
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed
     globals.languageNotifier.removeListener(_onLanguageChange);
     super.dispose();
   }
 
-  void _onLanguageChange() {
+  void _onLanguageChange() async {
     setState(() {
-      // Update texts when the language changes
       _updateTexts();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   void _updateTexts() {
-    // Define translated texts for both languages
     final Map<String, String> polishTexts = {
       'title': 'Ustawienia',
       'darkMode': 'Tryb Ciemny',
-      'notifications': 'Powiadomienia',
-      'accessibility': 'Tryb Dostępności',
-      'isWorking': 'Czy działa?',
-      'reportProblem': 'Zgłoś Problem',
+      'resetPin': 'Zresetuj PIN',
+      'pinResetSuccess': 'PIN został zresetowany',
     };
 
     final Map<String, String> englishTexts = {
       'title': 'Settings',
       'darkMode': 'Dark Mode',
-      'notifications': 'Notifications',
-      'accessibility': 'Accessibility Mode',
-      'isWorking': 'Is it working?',
-      'reportProblem': 'Report a Problem',
+      'resetPin': 'Reset PIN',
+      'pinResetSuccess': 'PIN resetted correctly',
     };
 
-    // Choose the appropriate texts based on the global language setting
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
-  void toggleDarkMode() {
-    setState(() {
-      switchValues[0] = !switchValues[0];
-      // Save the state to the global variable
-      globals.globalIsDarkMode = switchValues[0];
-    });
+  Future<void> _resetPin() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PinSetupPage()),
+    );
+    if (result == true) {
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(texts['resetPin'] ?? 'Reset PIN'),
+          content: Text(texts['pinResetSuccess'] ?? 'PIN resetted correctly'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -126,69 +113,59 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                itemCount: 4, // Only iterate over the first 4 items (switches)
-                itemBuilder: (context, index) {
-                  return Padding(
+              child: ListView(
+                children: [
+                  Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text(
-                            _getPrefilledText(index),
+                            texts['darkMode'] ?? 'Dark Mode',
                             style: TextStyle(fontSize: 16),
                           ),
                         ),
                         Switch(
-                          value: switchValues[index],
+                          value: switchValues[0],
                           onChanged: (bool value) {
-                            switchActions[index]();
+                            switchActions[0]();
                           },
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-            ),
-            // Add the "Report a Problem" button explicitly
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ReportPage()),
-                  );
-                },
-                icon: Icon(Icons.bug_report),
-                label: Text(texts['reportProblem'] ?? 'Report a Problem'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFED1C24),
-                  foregroundColor: Colors.white,
-                ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            texts['resetPin'] ?? 'Reset PIN',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: _resetPin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFFED1C24),
+                          ),
+                          child: Text(
+                            texts['resetPin'] ?? 'Reset PIN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  String _getPrefilledText(int index) {
-    switch (index) {
-      case 0:
-        return texts['darkMode'] ?? 'Dark Mode';
-      case 1:
-        return texts['notifications'] ?? 'Notifications';
-      case 2:
-        return texts['accessibility'] ?? 'Accessibility Mode';
-      case 3:
-        return texts['isWorking'] ?? 'Is it working?';
-      case 4:
-        return texts['reportProblem'] ?? 'Report a Problem';
-      default:
-        return '';
-    }
   }
 }

@@ -25,7 +25,6 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
 
-
   final List<String> _serverUrls = [
     'https://ck.pjwstk.edu.pl/cyfrowe_klucze_app/login-userm/',
     'https://194.92.77.100:50343/cyfrowe_klucze_app/login-userm/',
@@ -54,9 +53,8 @@ class _LoginPageState extends State<LoginPage> {
       );
       if (result == true) {
         setState(() {
-          _isLoading = true; // <-- Show loading indicator
+          _isLoading = true;
         });
-
         final serverUrl = await _getWorkingServerUrl();
         if (serverUrl == null) {
           setState(() {
@@ -65,21 +63,22 @@ class _LoginPageState extends State<LoginPage> {
           _showErrorDialog(context, texts['noTrustedServer']!);
           return;
         }
-
         try {
           final dio = await NetworkHelper.getDio();
           final response = await dio.get(serverUrl);
-
           if (response.statusCode == 200) {
-            final data =
-                response.data is String ? jsonDecode(response.data) : response.data;
+            final data = response.data is String ? jsonDecode(response.data) : response.data;
             final serverSessionKey = data['session_key'];
-            final localSessionKey =
-                prefs.getString('user_sessionKey') ?? globals.globalSessionKey;
-
+            final localSessionKey = prefs.getString('user_sessionKey') ?? globals.globalSessionKey;
             if (serverSessionKey == localSessionKey &&
                 serverSessionKey != null &&
                 serverSessionKey.isNotEmpty) {
+              globals.globalFullName = prefs.getString('user_fullName') ?? '';
+              globals.globalUserType = prefs.getString('user_userType') ?? '';
+              globals.globalGroup = prefs.getString('user_group') ?? '';
+              globals.globalEmail = prefs.getString('user_email') ?? '';
+              globals.globalSessionKey = prefs.getString('user_sessionKey') ?? globals.globalSessionKey;
+
               bool reservationSuccess = true;
               try {
                 await _fetchReservationsForToday().timeout(
@@ -109,25 +108,30 @@ class _LoginPageState extends State<LoginPage> {
                 context,
                 MaterialPageRoute(builder: (context) => HomePage()),
               );
+              return;
             } else {
               setState(() {
                 _isLoading = false;
               });
               await prefs.remove('user_pin');
               await prefs.remove('user_sessionKey');
+              await prefs.setInt('pin_tries_left', 3);
               _showErrorDialog(context, texts['sessionKeyMismatch']!);
+              return;
             }
           } else {
             setState(() {
               _isLoading = false;
             });
+            await prefs.setInt('pin_tries_left', 3);
             _showErrorDialog(context, texts['failedVerifySession']!);
+            return;
           }
         } catch (e) {
           setState(() {
             _isLoading = false;
           });
-          _showErrorDialog(context, '${texts['error']!}: $e');
+
         }
       }
     }
@@ -139,10 +143,12 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _onLanguageChange() {
+  void _onLanguageChange() async {
     setState(() {
       _updateTexts();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('language_polish', globals.globalLanguagePolish ?? true);
   }
 
   void _updateTexts() {
@@ -186,7 +192,12 @@ class _LoginPageState extends State<LoginPage> {
     for (final url in _serverUrls) {
       try {
         final dio = await NetworkHelper.getDio(sha256Pins: _sha256Pins);
-        final response = await dio.head(url).catchError((_) => null);
+        final response = await dio.head(url).catchError((error) {
+          return Response(
+            requestOptions: RequestOptions(path: url),
+            statusCode: 0,
+          );
+        });
         if (response.statusCode == 200) {
           return url;
         }
@@ -208,6 +219,19 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = false;
       });
       _showErrorDialog(context, texts['invalidLogin']!);
+      return;
+    }
+
+    if (password.isEmpty) {
+      setState(() {
+        _isLoading = false;
+      });
+      await _showErrorDialog(
+        context,
+        texts['providePassword'] ?? (globals.globalLanguagePolish == true
+            ? 'Podaj hasło.'
+            : 'Please provide a password.'),
+      );
       return;
     }
 
@@ -246,6 +270,7 @@ class _LoginPageState extends State<LoginPage> {
           await prefs.setString('user_fullName', globals.globalFullName ?? '');
           await prefs.setString('user_userType', globals.globalUserType ?? '');
           await prefs.setString('user_group', globals.globalGroup ?? '');
+          await prefs.setString('user_email', globals.globalEmail ?? '');
           await prefs.setString(
             'user_sessionKey',
             globals.globalSessionKey ?? '',
@@ -269,14 +294,12 @@ class _LoginPageState extends State<LoginPage> {
             await _showErrorDialog(context, texts['gakkoTimeout']!);
           }
 
-          final isFirstLogin = !(prefs.getBool('has_logged_in') ?? false);
-
           setState(() {
             _isLoading = false;
           });
 
-          if (isFirstLogin) {
-            await prefs.setBool('has_logged_in', true);
+          final pin = prefs.getString('user_pin');
+          if (pin == null || pin.isEmpty) {
             final pinSet = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PinSetupPage()),
@@ -370,8 +393,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => !_isLoading, // Disable back if loading
+    return PopScope(
+      canPop:  !_isLoading, 
       child: BasePage(
         title: 'Login',
         showLeftButton: false,

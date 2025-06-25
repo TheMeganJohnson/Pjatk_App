@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pjatk_app/home_page.dart';
-import 'globals.dart' as globals;
-import 'main.dart'; // Ensure main.dart is imported
+import '../globals.dart' as globals;
+import '../main.dart'; // Ensure main.dart is imported
 
 class NewReservationFinishPage extends StatefulWidget {
   const NewReservationFinishPage({super.key});

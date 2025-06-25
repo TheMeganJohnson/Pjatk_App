@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'main.dart';
-import 'globals.dart' as globals;
+import '../main.dart';
+import '../globals.dart' as globals;
 import 'new_reser_end.dart'; // Import the new reservation end page
 
 class NewReservationStartPage extends StatefulWidget {
