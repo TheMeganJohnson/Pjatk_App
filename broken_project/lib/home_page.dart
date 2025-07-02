@@ -33,26 +33,21 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    // Initialize texts based on the current language
     _updateTexts();
 
-    // Listen to language changes
     globals.languageNotifier.addListener(_onLanguageChange);
 
-    // Fetch reservations when the page loads
     _fetchReservationsForToday();
   }
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed
     globals.languageNotifier.removeListener(_onLanguageChange);
     super.dispose();
   }
 
   void _onLanguageChange() async {
     setState(() {
-      // Update texts when the language changes
       _updateTexts();
     });
     final prefs = await SharedPreferences.getInstance();
@@ -60,7 +55,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _updateTexts() {
-    // Define translated texts for both languages
     final Map<String, String> polishTexts = {
       'upcoming': 'Dzisiejsze Rezerwacje',
       'yourReservations': 'Twoje \nRezerwacje',
@@ -69,7 +63,6 @@ class _HomePageState extends State<HomePage> {
       'create': 'Stwórz',
       'noReservations': 'Brak nadchodzących rezerwacji',
       'room': 'Sala',
-      'notVerified': 'Nie potwierdzona',
     };
 
     final Map<String, String> englishTexts = {
@@ -80,10 +73,8 @@ class _HomePageState extends State<HomePage> {
       'create': 'Create',
       'noReservations': 'No upcoming reservations',
       'room': 'Classroom',
-      'notVerified': 'Not verified',
     };
 
-    // Choose the appropriate texts based on the global language setting
     texts = globals.globalLanguagePolish == true ? polishTexts : englishTexts;
   }
 
@@ -106,7 +97,6 @@ class _HomePageState extends State<HomePage> {
           todaysReservations =
               List<Map<String, dynamic>>.from(data['reservations']);
 
-          // Sort reservations by 'from_datetime'
           todaysReservations.sort((a, b) {
             final DateTime aTime = DateTime.parse(a['from_datetime']);
             final DateTime bTime = DateTime.parse(b['from_datetime']);
@@ -124,7 +114,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // Prevent popping (back navigation)
+      canPop: false,
       child: BasePage(
         title: 'Home',
         addRightPadding: true,
@@ -151,14 +141,14 @@ class _HomePageState extends State<HomePage> {
                         color: Theme.of(context)
                             .textTheme
                             .bodyLarge
-                            ?.color, // Use theme's text color
+                            ?.color,
                       ),
                     ),
                     IconButton(
                       icon: Icon(Icons.refresh,
                           color: Theme.of(context)
                               .iconTheme
-                              .color), // Use theme's icon color
+                              .color),
                       onPressed: _fetchReservationsForToday,
                     ),
                   ],
@@ -166,33 +156,33 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 16.0),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0), // Additional padding for the container
+                      horizontal: 8.0),
                   child: GestureDetector(
                     child: Container(
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
                         color: Theme.of(context)
-                            .cardColor, // Use theme's card color
+                            .cardColor,
                         borderRadius: BorderRadius.circular(12.0),
                         border: Border.all(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white.withOpacity(
-                                  0.2) // Thin white border for dark mode
+                                  0.2)
                               : Colors.black.withOpacity(
-                                  0.1), // Thin black border for light mode
-                          width: 1.0, // Border thickness
+                                  0.1),
+                          width: 1.0,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color:
                                 Theme.of(context).brightness == Brightness.dark
                                     ? Colors.white.withOpacity(
-                                        0.05) // Light shadow for dark mode
+                                        0.05)
                                     : Colors.black.withOpacity(
-                                        0.1), // Dark shadow for light mode
+                                        0.1),
                             spreadRadius: 2,
                             blurRadius: 8,
-                            offset: Offset(0, 4), // Slightly raised shadow
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
@@ -203,8 +193,6 @@ class _HomePageState extends State<HomePage> {
                               itemCount: todaysReservations.length,
                               itemBuilder: (context, index) {
                                 final reservation = todaysReservations[index];
-                                final isVerified =
-                                    reservation['verified'] == true;
 
                                 return ListTile(
                                   title: Text(
@@ -219,8 +207,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '${texts['room']}: ${reservation['room']}, ${DateFormat('HH:mm').format(DateTime.parse(reservation['from_datetime']))}'
-                                    '${isVerified ? '' : ' - ${texts['notVerified'] ?? 'Not verified'}'}',
+                                    '${texts['room']}: ${reservation['room']}, ${DateFormat('HH:mm').format(DateTime.parse(reservation['from_datetime']))}',
                                     style: TextStyle(
                                       color: Theme.of(context)
                                           .textTheme
@@ -255,10 +242,9 @@ class _HomePageState extends State<HomePage> {
                 ),
                 SizedBox(height: 24.0),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0), // Align with above
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Builder(
                     builder: (context) {
-                      // Make the square about 10% smaller
                       double side = ((MediaQuery.of(context).size.width - 48 - 16) / 2) * 0.9;
                       return SizedBox(
                         width: side,
@@ -326,7 +312,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 SizedBox(
                     height:
-                        32.0), // Extra space at the bottom for full shadow visibility
+                        32.0),
               ],
             ),
           ),

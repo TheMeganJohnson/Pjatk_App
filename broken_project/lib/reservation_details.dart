@@ -24,7 +24,6 @@ class _ReservationDetailsPageState extends State<ReservationDetailsPage> {
     'startTime': '',
     'group': '',
     'user': '',
-    'verified': '',
     'yes': '',
     'no': '',
     'openDoor': '',

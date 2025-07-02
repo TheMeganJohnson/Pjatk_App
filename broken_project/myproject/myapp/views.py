@@ -1,43 +1,12 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import check_password
-from .models import OfficeAppUser, Reservation
+from .models import Reservation
 from .models import Timetable
 import pytz
 import json
 from datetime import datetime
 
-@csrf_exempt
-def check_login(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            login_or_email = data.get('login')
-            password = data.get('password')
-
-            try:
-                user = OfficeAppUser.objects.get(login=login_or_email)
-            except OfficeAppUser.DoesNotExist:
-                try:
-                    user = OfficeAppUser.objects.get(email=login_or_email)
-                except OfficeAppUser.DoesNotExist:
-                    return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
-
-            if check_password(password, user.password):
-                user_data = {
-                    'name': user.name,
-                    'surname': user.surname,
-                    'email': user.email,
-                    'isAuthenticated': user.isAuthenticated,  # Use is_authenticated correctly
-                    'permissions': user.permissions,
-                    'group': user.group,
-                }
-                return JsonResponse({'status': 'success', 'user_data': user_data})
-            else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid password'}, status=400)
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
 @csrf_exempt
 def list_reservations(request):
@@ -61,10 +30,8 @@ def list_reservations(request):
                     'duration_minutes': reservation.duration_minutes,
                     'from_datetime': reservation.from_datetime,
                     'group': reservation.group,
-                    'is_canceled': reservation.is_canceled,
                     'color': reservation.color,
                     'user': reservation.user,
-                    'verified': reservation.verified,
                 }
                 for reservation in reservations
             ]

@@ -23,8 +23,6 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
   late Map<String, String> texts = {
     'title': '',
     'room': '',
-    'verified': '',
-    'unverified': '',
     'noReservations': '',
   };
 
@@ -61,16 +59,12 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
     final Map<String, String> polishTexts = {
       'title': 'Moje Rezerwacje',
       'room': 'Sala',
-      'verified': 'Zweryfikowane',
-      'unverified': 'Niezweryfikowane',
       'noReservations': 'Brak rezerwacji na wybrany dzień',
     };
 
     final Map<String, String> englishTexts = {
       'title': 'My Reservations',
       'room': 'Classroom',
-      'verified': 'Verified',
-      'unverified': 'Unverified',
       'noReservations': 'No reservations for the selected day',
     };
 
@@ -270,10 +264,6 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                       left: 50.0,
                                       right: 16.0,
                                       height: boxHeight,
-                                      child: Opacity(
-                                        opacity: reservation['verified'] == true
-                                            ? 1.0
-                                            : 0.5,
                                         child: GestureDetector(
                                           onTap: () {
                                             Navigator.push(
@@ -353,8 +343,7 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
                                                 : null,
                                           ),
                                         ),
-                                      ),
-                                    );
+                                      );
                                   }).toList(),
                                 )
                               : SizedBox.shrink(),
