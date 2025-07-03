@@ -1,0 +1,8 @@
+Django==4.2.16
+PyMySQL==1.1.0
+cryptography==41.0.7
+pytz==2025.2
+sqlparse==0.4.4
+python-dotenv==1.0.0
+gunicorn==21.2.0
+whitenoise==6.6.0

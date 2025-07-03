@@ -1,2 +1,0 @@
-# Runtime specification for deployment platforms
-python-3.11.0
