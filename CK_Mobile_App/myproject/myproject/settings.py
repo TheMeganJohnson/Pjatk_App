@@ -11,6 +11,28 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# PyMySQL configuration
+import pymysql
+pymysql.install_as_MySQLdb()
+
+# Patch Django MySQL version check and features
+import django
+from django.db.backends.mysql import base, features
+# Monkey patch the version check
+def patched_check_mysql_version(self, version=None):
+    return True
+base.DatabaseWrapper.check_database_version_supported = patched_check_mysql_version
+
+# Monkey patch MySQL features for 5.5 compatibility
+def patched_supports_microsecond_precision(self):
+    return False
+features.DatabaseFeatures.supports_microsecond_precision = property(patched_supports_microsecond_precision)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +42,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)^ldj)6^k%-@2rd&gigbdzlcvt9o-g)cl&(9z95vm)vko-5kox'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-)^ldj)6^k%-@2rd&gigbdzlcvt9o-g)cl&(9z95vm)vko-5kox')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']  # Allow all hosts for development purposes
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')  # Allow all hosts for development purposes
 
 
 # Application definition
@@ -42,6 +64,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,11 +100,18 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'pjatk_app_db',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.getenv('DB_NAME', 'your_database_name'),
+        'USER': os.getenv('DB_USER', 'your_username'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'your_password'),
+        'HOST': os.getenv('DB_HOST', 'sql7.freesqldatabase.com'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8',
+            'use_unicode': True,
+        },
+        'TIME_ZONE': None,  # Use database time zone
+        'CONN_MAX_AGE': 0,  # Close connections immediately
     }
 }
 
@@ -121,8 +151,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Whitenoise configuration for static files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

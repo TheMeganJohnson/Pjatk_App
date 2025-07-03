@@ -59,10 +59,8 @@ def create_reservation(request):
                 code=data['code'],
                 duration_minutes=data.get('duration_minutes', 90),
                 from_datetime=from_datetime,
-                to_datetime=to_datetime,
                 group=data['group'],
-                user=data['user'],
-                verified=False
+                user=data['user']
             )
             reservation.save()
             print(f"Reservation saved: {reservation}")  # Debug print to confirm saving
