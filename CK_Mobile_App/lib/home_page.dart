@@ -78,8 +78,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchReservationsForToday() async {
-    final response = await http.post(
-      Uri.parse('http://${globals.pcIP}/api/list_reservations/'),
+  final response = await http.post(
+    Uri.parse('https://${globals.pcIP}/api/list_reservations/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },

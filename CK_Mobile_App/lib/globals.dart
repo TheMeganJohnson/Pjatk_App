@@ -15,7 +15,7 @@ List<Map<String, dynamic>> todaysReservations = [];
 String? globalGroup;
 bool? globalLanguagePolish;
 String? lastScannedQrContent;
-String? pcIP = "your-new-server-ip:8000";  // Replace with your actual server IP where Django is hosted
+String? pcIP = "ck-mobile-backend.onrender.com";
 String? globalSessionKey;
 
 ValueNotifier<bool> languageNotifier = ValueNotifier(

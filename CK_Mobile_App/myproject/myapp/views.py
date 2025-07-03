@@ -12,9 +12,17 @@ from datetime import datetime
 def list_reservations(request):
     if request.method == 'POST':
         try:
+            # Debug: print request details
+            print(f"Request body: {request.body}")
+            print(f"Request headers: {request.headers}")
+            
             data = json.loads(request.body)
+            print(f"Parsed data: {data}")
+            
             group = data.get('group')
             date_str = data.get('date')
+            
+            print(f"Group: {group}, Date: {date_str}")
 
             if not date_str:
                 return JsonResponse({'status': 'error', 'message': 'Date is required'}, status=400)
@@ -22,6 +30,8 @@ def list_reservations(request):
             date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
             reservations = Timetable.objects.filter(group=group, from_datetime__date=date)
+            print(f"Found {reservations.count()} reservations")
+            
             reservations_data = [
                 {
                     'name': reservation.name,
@@ -37,8 +47,12 @@ def list_reservations(request):
             ]
 
             return JsonResponse({'status': 'success', 'reservations': reservations_data})
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
+            return JsonResponse({'status': 'error', 'message': f'Invalid JSON: {e}'}, status=400)
+        except Exception as e:
+            print(f"General error: {e}")
+            return JsonResponse({'status': 'error', 'message': f'Server error: {e}'}, status=500)
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
 @csrf_exempt

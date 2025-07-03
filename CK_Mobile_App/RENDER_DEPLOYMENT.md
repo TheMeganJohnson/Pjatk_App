@@ -19,6 +19,10 @@ pip install -r requirements.txt && cd myproject && python manage.py collectstati
 cd myproject && gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT
 ```
 
+**Root Directory:** Leave as default (Render will clone the whole repo)
+
+**Python Version:** 3.11.x (or whatever Render offers)
+
 ### 3. Environment Variables
 Add these in Render dashboard:
 

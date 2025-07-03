@@ -348,7 +348,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _fetchReservationsForToday() async {
     final response = await Dio().post(
-      'http://${globals.pcIP}/api/list_reservations/',
+      'https://${globals.pcIP}/api/list_reservations/',
       data: {
         'group': globals.globalGroup ?? '',
         'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
