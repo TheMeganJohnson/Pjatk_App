@@ -187,7 +187,7 @@ class BasePageState extends State<BasePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'v.09 June 2025 | PJATK',
+                    'v.10 June 2025 | PJATK',
                     style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
                   Text(
