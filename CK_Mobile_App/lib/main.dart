@@ -126,7 +126,7 @@ class BasePageState extends State<BasePage> {
             Expanded(
               child: Center(
                 child: Image.asset(
-                  'images/logo_app.png',
+                  'images/logo-pjwstk.png',
                   height: 40,
                 ),
               ),
@@ -187,7 +187,7 @@ class BasePageState extends State<BasePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'v.10 June 2025 | PJATK',
+                    'v.10 July 2025 | PJATK',
                     style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
                   Text(
